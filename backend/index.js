@@ -5,6 +5,7 @@ const cors = require('cors');
 const movimientosRoutes = require('./routes/movimientos');
 const comprobantesRoutes = require('./routes/comprobantes');
 const excelRoutes = require('./routes/excel');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -14,6 +15,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Rutas
+app.use('/api/auth', authRoutes);
 app.use('/api/movimientos', movimientosRoutes);
 app.use('/api/comprobantes', comprobantesRoutes);
 app.use('/api/excel', excelRoutes);

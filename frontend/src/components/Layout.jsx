@@ -1,8 +1,16 @@
 import {
   LayoutDashboard, TrendingUp, TrendingDown,
-  FileText, Upload, ChevronRight, Menu, X
+  FileText, Upload, ChevronRight, Menu, X, LogOut
 } from 'lucide-react'
 import { useState } from 'react'
+
+function getUserFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem('user'))
+  } catch {
+    return null
+  }
+}
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'PRINCIPAL' },
@@ -14,6 +22,8 @@ const navItems = [
 
 export default function Layout({ children, page, onNavigate }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const user = getUserFromStorage()
 
   const groups = [...new Set(navItems.map(i => i.group))]
 
@@ -58,18 +68,31 @@ export default function Layout({ children, page, onNavigate }) {
 
       {/* Footer */}
       <div className="px-4 py-4 border-t border-primary-700">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold">
-            VC
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-xs font-bold uppercase">
+            {user?.nombre ? user.nombre.charAt(0) : 'U'}
           </div>
           <div>
-            <p className="text-sm font-medium leading-tight">Valentina C.</p>
-            <p className="text-xs text-primary-400">Admin financiero</p>
+            <p className="text-sm font-medium leading-tight">{user?.nombre || 'Usuario'}</p>
+            <p className="text-xs text-primary-400">{user?.rol || 'Sin rol'}</p>
           </div>
         </div>
+        <button
+          onClick={() => setShowLogoutModal(true)}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-primary-200 hover:bg-primary-800 hover:text-white text-xs font-medium transition-all duration-150"
+        >
+          <LogOut size={14} />
+          Cerrar sesión
+        </button>
       </div>
     </div>
   )
+
+  function handleLogoutConfirm() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.location.href = '/login'
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -103,6 +126,30 @@ export default function Layout({ children, page, onNavigate }) {
           {children}
         </main>
       </div>
+
+      {/* Logout confirmation modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 mx-4 w-full max-w-sm">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Cerrar sesión</h3>
+            <p className="text-sm text-gray-500 mb-6">¿Desea cerrar sesión?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

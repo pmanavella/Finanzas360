@@ -64,6 +64,27 @@ CREATE POLICY "Allow all for anon" ON comprobantes FOR ALL USING (true) WITH CHE
 -- Storage: crear bucket para comprobantes (ejecutar también desde Storage en el dashboard)
 -- INSERT INTO storage.buckets (id, name, public) VALUES ('comprobantes', 'comprobantes', true);
 
+-- ============================================================
+-- Tabla de usuarios del sistema
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS users (
+  id            UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  email         TEXT        NOT NULL UNIQUE,
+  nombre        TEXT        NOT NULL,
+  hashed_password TEXT      NOT NULL,
+  rol           TEXT        NOT NULL DEFAULT 'user' CHECK (rol IN ('admin', 'user')),
+  is_active     BOOLEAN     NOT NULL DEFAULT true,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+-- Solo el service role (backend) puede leer/escribir la tabla users
+CREATE POLICY "Service role only" ON users FOR ALL USING (auth.role() = 'service_role');
+
 -- Datos de ejemplo para demo
 INSERT INTO movimientos (fecha, descripcion, categoria, tipo, monto, proveedor_cliente) VALUES
   ('2026-04-02', 'Servicio de automatización — Cliente A', 'Servicios', 'Ingreso', 120000, 'Cliente A'),
