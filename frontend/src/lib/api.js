@@ -1,8 +1,22 @@
 import { API_URL } from './supabase'
 
+function getRole() {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? JSON.parse(raw).rol : null
+  } catch {
+    return null
+  }
+}
+
 async function request(path, options = {}) {
+  const role = getRole()
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(role ? { 'X-User-Role': role } : {}),
+      ...options.headers,
+    },
     ...options,
   })
   const data = await res.json()
@@ -29,19 +43,79 @@ export const api = {
 
   // Comprobantes
   getComprobantes: () => request('/api/comprobantes'),
-  subirComprobante: (formData) =>
-    fetch(`${API_URL}/api/comprobantes/upload`, { method: 'POST', body: formData })
-      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d }),
+  subirComprobante: (formData) => {
+    const role = getRole()
+    return fetch(`${API_URL}/api/comprobantes/upload`, {
+      method: 'POST', body: formData,
+      headers: role ? { 'X-User-Role': role } : {},
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
+  },
   vincularComprobante: (id, movimiento_id) =>
     request(`/api/comprobantes/${id}/vincular`, { method: 'PUT', body: JSON.stringify({ movimiento_id }) }),
   eliminarComprobante: (id) => request(`/api/comprobantes/${id}`, { method: 'DELETE' }),
 
   // Excel
-  validarExcel: (formData) =>
-    fetch(`${API_URL}/api/excel/validar`, { method: 'POST', body: formData })
-      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d }),
-  importarExcel: (formData) =>
-    fetch(`${API_URL}/api/excel/importar`, { method: 'POST', body: formData })
-      .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d }),
+  validarExcel: (formData) => {
+    const role = getRole()
+    return fetch(`${API_URL}/api/excel/validar`, {
+      method: 'POST', body: formData,
+      headers: role ? { 'X-User-Role': role } : {},
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
+  },
+  importarExcel: (formData) => {
+    const role = getRole()
+    return fetch(`${API_URL}/api/excel/importar`, {
+      method: 'POST', body: formData,
+      headers: role ? { 'X-User-Role': role } : {},
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
+  },
   getPlantillaInfo: () => request('/api/excel/plantilla'),
+
+  // Deudas
+  getDeudas: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v && v !== 'Todos'))
+    ).toString()
+    return request(`/api/deudas${qs ? `?${qs}` : ''}`)
+  },
+  getMetricasDeudas: () => request('/api/deudas/metricas'),
+  crearDeuda:    (body)     => request('/api/deudas', { method: 'POST', body: JSON.stringify(body) }),
+  editarDeuda:   (id, body) => request(`/api/deudas/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eliminarDeuda: (id)       => request(`/api/deudas/${id}`, { method: 'DELETE' }),
+
+  // Salarios — Empleados
+  getMetricasSalarios: () => request('/api/salarios/metricas'),
+  getEmpleados: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v && v !== 'Todos'))
+    ).toString()
+    return request(`/api/salarios/empleados${qs ? `?${qs}` : ''}`)
+  },
+  getEmpleado:       (id)       => request(`/api/salarios/empleados/${id}`),
+  crearEmpleado:     (body)     => request('/api/salarios/empleados', { method: 'POST', body: JSON.stringify(body) }),
+  editarEmpleado:    (id, body) => request(`/api/salarios/empleados/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eliminarEmpleado:  (id)       => request(`/api/salarios/empleados/${id}`, { method: 'DELETE' }),
+
+  // Salarios — Categorías
+  getCategoriasSalario:     ()       => request('/api/salarios/categorias'),
+  crearCategoriaSalario:    (body)   => request('/api/salarios/categorias', { method: 'POST', body: JSON.stringify(body) }),
+  eliminarCategoriaSalario: (id)     => request(`/api/salarios/categorias/${id}`, { method: 'DELETE' }),
+
+  // Salarios — Movimientos
+  getMovimientosSalario: (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+    ).toString()
+    return request(`/api/salarios/movimientos${qs ? `?${qs}` : ''}`)
+  },
+  crearMovimientoSalario:   (body)     => request('/api/salarios/movimientos', { method: 'POST', body: JSON.stringify(body) }),
+  editarMovimientoSalario:  (id, body) => request(`/api/salarios/movimientos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eliminarMovimientoSalario:(id)       => request(`/api/salarios/movimientos/${id}`, { method: 'DELETE' }),
+
+  // RBAC — Usuarios
+  getUsuarios:    ()         => request('/api/rbac/usuarios'),
+  crearUsuario:   (body)     => request('/api/rbac/usuarios', { method: 'POST', body: JSON.stringify(body) }),
+  editarUsuario:  (id, body) => request(`/api/rbac/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eliminarUsuario:(id)       => request(`/api/rbac/usuarios/${id}`, { method: 'DELETE' }),
+  getRoles:       ()         => request('/api/rbac/roles'),
 }

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, TrendingUp, TrendingDown,
-  FileText, Upload, ChevronRight, Menu, X, LogOut
+  FileText, Upload, ChevronRight, Menu, X, LogOut,
+  CreditCard, Users, Wallet
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -13,11 +14,14 @@ function getUserFromStorage() {
 }
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'PRINCIPAL' },
-  { id: 'ingresos', label: 'Ingresos', icon: TrendingUp, group: 'MOVIMIENTOS' },
-  { id: 'gastos', label: 'Gastos', icon: TrendingDown, group: 'MOVIMIENTOS' },
-  { id: 'comprobantes', label: 'Comprobantes', icon: FileText, group: 'DOCUMENTOS' },
-  { id: 'excel', label: 'Importar Excel', icon: Upload, group: 'DOCUMENTOS' },
+  { id: 'dashboard',    label: 'Dashboard',      icon: LayoutDashboard, group: 'PRINCIPAL' },
+  { id: 'ingresos',    label: 'Ingresos',        icon: TrendingUp,      group: 'MOVIMIENTOS' },
+  { id: 'gastos',      label: 'Gastos',          icon: TrendingDown,    group: 'MOVIMIENTOS' },
+  { id: 'deudas',      label: 'Deudas',          icon: CreditCard,      group: 'MOVIMIENTOS' },
+  { id: 'salarios',    label: 'Salarios',        icon: Wallet,          group: 'MOVIMIENTOS' },
+  { id: 'comprobantes',label: 'Comprobantes',    icon: FileText,        group: 'DOCUMENTOS' },
+  { id: 'excel',       label: 'Importar Excel',  icon: Upload,          group: 'DOCUMENTOS' },
+  { id: 'usuarios',    label: 'Usuarios',        icon: Users,           group: 'ADMINISTRACIÓN' },
 ]
 
 export default function Layout({ children, page, onNavigate }) {

@@ -8,10 +8,18 @@ import FinancialDashboard from './components/Dashboard'
 import Movimientos from './components/Movimientos'
 import Comprobantes from './components/Comprobantes'
 import ImportarExcel from './components/ImportarExcel'
+import Deudas from './components/Deudas'
+import Salarios from './components/Salarios'
+import Usuarios from './components/Usuarios'
+
+function getUserFromStorage() {
+  try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
+}
 
 function FinancialApp() {
   const [page, setPage] = useState('dashboard')
   const [openForm, setOpenForm] = useState(null)
+  const user = getUserFromStorage()
 
   const navigate = (p, extra) => {
     setPage(p)
@@ -21,15 +29,18 @@ function FinancialApp() {
 
   return (
     <Layout page={page} onNavigate={navigate}>
-      {page === 'dashboard' && <FinancialDashboard onNavigate={navigate} />}
-      {page === 'ingresos' && (
+      {page === 'dashboard'    && <FinancialDashboard onNavigate={navigate} />}
+      {page === 'ingresos'     && (
         <Movimientos tipo="Ingreso" openForm={openForm} onFormClose={() => setOpenForm(null)} />
       )}
-      {page === 'gastos' && (
+      {page === 'gastos'       && (
         <Movimientos tipo="Gasto" openForm={openForm} onFormClose={() => setOpenForm(null)} />
       )}
+      {page === 'deudas'       && <Deudas />}
+      {page === 'salarios'     && <Salarios user={user} />}
       {page === 'comprobantes' && <Comprobantes />}
-      {page === 'excel' && <ImportarExcel />}
+      {page === 'excel'        && <ImportarExcel />}
+      {page === 'usuarios'     && <Usuarios />}
     </Layout>
   )
 }
