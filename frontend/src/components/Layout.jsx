@@ -76,7 +76,7 @@ function NavDropdown({ group, items, page, onNavigate }) {
   return (
     <div className="relative h-14 flex items-center" ref={ref} onMouseEnter={open_} onMouseLeave={close_}>
       <button
-        className="relative h-full flex items-center gap-1.5 px-3.5 text-[13px] font-medium transition-colors duration-150"
+        className="relative h-full flex items-center gap-1.5 px-5 text-[13px] font-medium transition-colors duration-150"
         style={{ color: isActive || open ? '#fff' : 'rgba(255,255,255,0.62)' }}
       >
         <GroupIcon size={15} strokeWidth={isActive ? 2.2 : 1.7} />
@@ -111,7 +111,7 @@ export default function Layout({ children, page, onNavigate }) {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden" style={{ background: '#F7F8F3' }}>
+    <div className="flex flex-col min-h-screen" style={{ background: '#F7F8F3' }}>
 
       {/* ── Navbar ─────────────────────────────────── */}
       <header className="flex-shrink-0" style={{ background: NAV_BG }}>
@@ -124,13 +124,13 @@ export default function Layout({ children, page, onNavigate }) {
           </div>
 
           {/* Nav desktop */}
-          <nav className="hidden md:flex items-stretch flex-1">
+          <nav className="hidden md:flex items-stretch flex-1 justify-center">
 
             {/* Dashboard (link directo) */}
             <div className="relative h-14 flex items-center">
               <button
                 onClick={() => onNavigate('dashboard')}
-                className="relative h-full flex items-center gap-1.5 px-3.5 text-[13px] font-medium transition-colors duration-150"
+                className="relative h-full flex items-center gap-1.5 px-5 text-[13px] font-medium transition-colors duration-150"
                 style={{ color: page === 'dashboard' ? '#fff' : 'rgba(255,255,255,0.62)' }}
               >
                 <LayoutGrid size={15} strokeWidth={page === 'dashboard' ? 2.2 : 1.7} />
@@ -234,7 +234,7 @@ export default function Layout({ children, page, onNavigate }) {
       </header>
 
       {/* Contenido */}
-      <main className="flex-1 overflow-y-auto p-5 md:p-7">
+      <main className="flex-1 p-5 md:p-7">
         {children}
       </main>
 

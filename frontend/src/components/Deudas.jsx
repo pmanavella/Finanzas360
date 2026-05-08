@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { Plus, Trash2, RefreshCw, AlertCircle, CheckCircle, Clock, X, Save } from 'lucide-react'
 import { api } from '../lib/api'
 
@@ -61,49 +62,43 @@ function FormDeuda({ deuda, onClose, onSaved }) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in">
-        <div className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
-          <h2 className="font-serif font-semibold text-gray-900 text-[16px]">
-            {deuda ? 'Editar deuda' : 'Registrar deuda'}
-          </h2>
-          <button onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-card fade-in" style={{ maxWidth: 480 }}
+        onClick={e => e.stopPropagation()}>
+        <div className="modal-accent" />
+        <div className="modal-header" style={{ borderBottom: '1px solid rgba(15,110,86,0.1)' }}>
+          <h2 className="modal-title">{deuda ? 'Editar deuda' : 'Registrar deuda'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
             <X size={18} />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="modal-body space-y-4">
           <div>
-            <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Acreedor *</label>
+            <label className="form-label">Acreedor *</label>
             <input type="text" value={form.acreedor} onChange={e => set('acreedor', e.target.value)}
               placeholder="Ej: TechAR SRL" className={inputCls} style={inputStyle} />
           </div>
-
           <div>
-            <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Descripción</label>
+            <label className="form-label">Descripción</label>
             <input type="text" value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
               placeholder="Ej: Servicio soporte Abril" className={inputCls} style={inputStyle} />
           </div>
-
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Monto *</label>
+              <label className="form-label">Monto *</label>
               <input type="number" value={form.monto} onChange={e => set('monto', e.target.value)}
                 placeholder="0.00" min="0" step="0.01" className={inputCls} style={inputStyle} />
             </div>
             <div>
-              <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Vencimiento *</label>
+              <label className="form-label">Vencimiento *</label>
               <input type="date" value={form.vencimiento} onChange={e => set('vencimiento', e.target.value)}
                 className={inputCls} style={inputStyle} />
             </div>
           </div>
-
           <div>
-            <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Estado</label>
+            <label className="form-label">Estado</label>
             <div className="flex gap-2">
               {ESTADOS.map(e => (
                 <button key={e} onClick={() => set('estado', e)}
@@ -117,20 +112,16 @@ function FormDeuda({ deuda, onClose, onSaved }) {
               ))}
             </div>
           </div>
-
           <div>
-            <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">Notas</label>
+            <label className="form-label">Notas</label>
             <textarea value={form.notas} onChange={e => set('notas', e.target.value)}
               rows={2} placeholder="Notas adicionales..."
               className={inputCls + ' resize-none'} style={inputStyle} />
           </div>
-
-          {error && (
-            <div className="p-3 rounded-xl text-[13px] text-red-600 bg-red-50">{error}</div>
-          )}
+          {error && <div className="p-3 rounded-xl text-[13px] text-red-600 bg-red-50">{error}</div>}
         </div>
 
-        <div className="flex gap-2 px-6 py-4 border-t" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
+        <div className="modal-footer" style={{ borderTop: '1px solid rgba(15,110,86,0.1)' }}>
           <button onClick={onClose}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
             style={{ borderColor: 'rgba(15,110,86,0.2)' }}>
@@ -144,7 +135,8 @@ function FormDeuda({ deuda, onClose, onSaved }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -192,13 +184,12 @@ export default function Deudas() {
     }
   }
 
-  const pendientes = items.filter(d => d.estado !== 'Pagada')
+  const pendientes    = items.filter(d => d.estado !== 'Pagada')
+  const vencidas      = items.filter(d => d.estado !== 'Pagada' && isVencida(d.vencimiento))
   const totalPendiente = pendientes.reduce((s, d) => s + Number(d.monto), 0)
-  const vencidas = items.filter(d => d.estado !== 'Pagada' && isVencida(d.vencimiento))
 
-  const estadoChip = (deuda) => {
-    const venc = deuda.estado !== 'Pagada' && isVencida(deuda.vencimiento)
-    const estado = venc ? 'Vencida' : deuda.estado
+  function estadoChip(d) {
+    const estado = d.estado !== 'Pagada' && isVencida(d.vencimiento) ? 'Vencida' : d.estado
     const styles = {
       Pagada:    { background: '#E1F5EE', color: '#0F6E56' },
       Pendiente: { background: '#FEF3C7', color: '#92400E' },
@@ -263,10 +254,7 @@ export default function Deudas() {
               <thead>
                 <tr className="border-b bg-gray-50/60" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
                   {['ACREEDOR', 'DESCRIPCIÓN', 'MONTO', 'VENCIMIENTO', 'ESTADO', ''].map(h => (
-                    <th key={h}
-                      className="text-left py-3 px-5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                      {h}
-                    </th>
+                    <th key={h} className="text-left py-3 px-5 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -275,26 +263,21 @@ export default function Deudas() {
                   const venc = d.estado !== 'Pagada' && isVencida(d.vencimiento)
                   const pagada = d.estado === 'Pagada'
                   return (
-                    <tr key={d.id}
-                      className="border-b hover:bg-gray-50/50 transition-colors group"
+                    <tr key={d.id} className="border-b hover:bg-gray-50/50 transition-colors group"
                       style={{ borderColor: 'rgba(15,110,86,0.06)' }}>
                       <td className="py-4 px-5 font-semibold text-gray-900">{d.acreedor}</td>
                       <td className="py-4 px-5 text-gray-500">{d.descripcion || '—'}</td>
-                      <td className="py-4 px-5 font-semibold"
-                        style={{ color: pagada ? '#1D9E75' : '#E24B4A' }}>
+                      <td className="py-4 px-5 font-semibold" style={{ color: pagada ? '#1D9E75' : '#E24B4A' }}>
                         {fmt(d.monto)}
                       </td>
-                      <td className="py-4 px-5 font-medium"
-                        style={{ color: venc ? '#E24B4A' : '#374151' }}>
+                      <td className="py-4 px-5 font-medium" style={{ color: venc ? '#E24B4A' : '#374151' }}>
                         {formatFecha(d.vencimiento)}
                       </td>
                       <td className="py-4 px-5">{estadoChip(d)}</td>
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-2 justify-end">
                           {!pagada && (
-                            <button
-                              onClick={() => handlePagar(d)}
-                              disabled={pagandoId === d.id}
+                            <button onClick={() => handlePagar(d)} disabled={pagandoId === d.id}
                               className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium border transition-all disabled:opacity-50"
                               style={venc
                                 ? { background: '#0F6E56', color: '#fff', borderColor: '#0F6E56' }
@@ -304,18 +287,15 @@ export default function Deudas() {
                             </button>
                           )}
                           {pagada && (
-                            <span className="flex items-center gap-1 text-[12px] font-medium"
-                              style={{ color: '#1D9E75' }}>
+                            <span className="flex items-center gap-1 text-[12px] font-medium" style={{ color: '#1D9E75' }}>
                               <CheckCircle size={14} /> Pagada
                             </span>
                           )}
-                          <button
-                            onClick={() => { setEditItem(d); setShowForm(true) }}
+                          <button onClick={() => { setEditItem(d); setShowForm(true) }}
                             className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100">
                             ✏️
                           </button>
-                          <button
-                            onClick={() => setConfirmDelete(d)}
+                          <button onClick={() => setConfirmDelete(d)}
                             className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
                             <Trash2 size={13} />
                           </button>
@@ -354,7 +334,7 @@ export default function Deudas() {
         />
       )}
 
-      {confirmDelete && (
+      {confirmDelete && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDelete(null)} />
           <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full fade-in">
@@ -376,7 +356,8 @@ export default function Deudas() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

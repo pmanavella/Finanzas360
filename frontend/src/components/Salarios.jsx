@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
 import {
   Users, DollarSign, Tag, Plus, Trash2, Edit2, X, ChevronDown, Lock,
@@ -67,25 +68,29 @@ function AccesoDenegado() {
   )
 }
 
-// ── Modal base ────────────────────────────────────────────────────────────────
+// ── Modal base (con createPortal → se renderiza en document.body) ─────────────
 
 function Modal({ title, onClose, children }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40" style={{ backdropFilter: 'blur(4px)' }} onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md fade-in overflow-hidden">
-        <div className="h-[3px]" style={{ background: 'linear-gradient(90deg,#1D9E75,#5DCAA5)' }} />
-        <div className="px-6 pt-5 pb-6">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-serif font-semibold text-[17px] text-gray-900">{title}</h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-              <X size={16} />
-            </button>
-          </div>
+  return createPortal(
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-card fade-in"
+        style={{ maxWidth: 480 }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="modal-accent" />
+        <div className="modal-header">
+          <h3 className="modal-title">{title}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="modal-body">
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -118,7 +123,7 @@ const EMP_VACIO = {
 function TabEmpleados() {
   const [empleados, setEmpleados] = useState([])
   const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(null) // null | 'nuevo' | empleado-object
+  const [modal, setModal]         = useState(null)
   const [form, setForm]           = useState(EMP_VACIO)
   const [saving, setSaving]       = useState(false)
   const [error, setError]         = useState(null)
@@ -169,7 +174,6 @@ function TabEmpleados() {
 
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <p className="text-[13px] text-gray-500">{empleados.length} empleados registrados</p>
         <button
@@ -181,7 +185,6 @@ function TabEmpleados() {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
         <div className="overflow-x-auto">
           <table className="w-full text-[13px]">
@@ -229,7 +232,6 @@ function TabEmpleados() {
         </div>
       </div>
 
-      {/* Modal */}
       {modal && (
         <Modal title={modal === 'nuevo' ? 'Nuevo empleado' : 'Editar empleado'} onClose={() => setModal(null)}>
           <form onSubmit={guardar} className="space-y-3">
@@ -316,7 +318,7 @@ function TabMovimientos() {
   const [empleados, setEmpleados] = useState([])
   const [categorias, setCategorias] = useState([])
   const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(false) // false | 'nuevo' | movimiento-object
+  const [modal, setModal]         = useState(false)
   const [form, setForm]           = useState(MOV_VACIO)
   const [empInfo, setEmpInfo]     = useState(null)
   const [saving, setSaving]       = useState(false)
@@ -398,7 +400,6 @@ function TabMovimientos() {
         fecha:        form.fecha,
         descripcion:  form.descripcion,
       }
-      // En modo nuevo con tipo hora/turno usamos cantidad para que el backend calcule
       if (modal === 'nuevo' && empInfo && empInfo.tipo_salario !== 'mensual' && form.cantidad) {
         payload.cantidad = Number(form.cantidad)
       } else {
@@ -495,7 +496,6 @@ function TabMovimientos() {
       {modal && (
         <Modal title={esEdicion ? 'Editar movimiento salarial' : 'Registrar movimiento salarial'} onClose={cerrarModal}>
           <form onSubmit={guardar} className="space-y-3">
-            {/* Empleado */}
             <div>
               <Label>Empleado *</Label>
               <div className="relative">
@@ -513,7 +513,6 @@ function TabMovimientos() {
               </div>
             </div>
 
-            {/* Info salarial autocargada */}
             {empInfo && (
               <div className="rounded-xl px-3 py-2.5 text-[12.5px] flex items-center gap-2"
                 style={{ background: '#E1F5EE', color: '#0F6E56' }}>
@@ -523,7 +522,6 @@ function TabMovimientos() {
               </div>
             )}
 
-            {/* Cantidad (solo para hora/turno en modo nuevo) */}
             {!esEdicion && empInfo && empInfo.tipo_salario !== 'mensual' && (
               <div>
                 <Label>{empInfo.tipo_salario === 'hora' ? 'Cantidad de horas *' : 'Cantidad de turnos *'}</Label>
@@ -536,7 +534,6 @@ function TabMovimientos() {
               </div>
             )}
 
-            {/* Categoría */}
             <div>
               <Label>Categoría *</Label>
               <div className="relative">
@@ -602,12 +599,12 @@ function TabMovimientos() {
 // ── TAB: Categorías ───────────────────────────────────────────────────────────
 
 function TabCategorias() {
-  const [cats, setCats]     = useState([])
+  const [cats, setCats]       = useState([])
   const [loading, setLoading] = useState(true)
-  const [modal, setModal]   = useState(false)
-  const [form, setForm]     = useState({ nombre: '', descripcion: '' })
-  const [saving, setSaving] = useState(false)
-  const [error, setError]   = useState(null)
+  const [modal, setModal]     = useState(false)
+  const [form, setForm]       = useState({ nombre: '', descripcion: '' })
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState(null)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -741,7 +738,6 @@ export default function Salarios({ user }) {
         </div>
       </div>
 
-      {/* Sub-tabs */}
       <div
         className="flex gap-1 bg-white rounded-xl p-1 shadow-sm border w-fit"
         style={{ borderColor: 'rgba(15,110,86,0.1)' }}
