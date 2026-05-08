@@ -2,3 +2,12 @@
 .env.local
 backend/.env
 frontend/.env
+
+# Dependencias
+node_modules/
+
+# Build
+dist/
+
+# Cache de Vite
+.vite/
