@@ -87,10 +87,12 @@ CREATE POLICY "Service role only" ON users FOR ALL USING (auth.role() = 'service
 
 -- Datos de ejemplo para demo
 INSERT INTO movimientos (fecha, descripcion, categoria, tipo, monto, proveedor_cliente) VALUES
-  ('2026-04-02', 'Servicio de automatización — Cliente A', 'Servicios', 'Ingreso', 120000, 'Cliente A'),
-  ('2026-04-01', 'Servidor AWS — Marzo 2026', 'Tecnología', 'Gasto', 38400, 'AWS'),
-  ('2026-03-30', 'Consultoría IA — Cliente B', 'Servicios', 'Ingreso', 85000, 'Cliente B'),
-  ('2026-03-29', 'Insumos electrónicos — Proveedor X', 'Insumos', 'Gasto', 54200, 'Proveedor X'),
-  ('2026-03-28', 'Aporte de inversión — Guillermo R.', 'Inversión', 'Ingreso', 79500, 'Guillermo R.'),
-  ('2026-03-27', 'Honorarios desarrollador — Freelance', 'RRHH', 'Gasto', 65000, 'Freelance'),
-  ('2026-03-25', 'Licencias de software', 'Tecnología', 'Gasto', 22100, 'Adobe');
+  ('2026-05-07', 'Servicio de automatización — Cliente A', 'Servicios',  'Ingreso', 120000, 'Cliente A'),
+  ('2026-05-06', 'Servidor AWS — Mayo 2026',               'Tecnología', 'Gasto',    38400, 'AWS'),
+  ('2026-05-05', 'Consultoría IA — Cliente B',             'Servicios',  'Ingreso',  85000, 'Cliente B'),
+  ('2026-05-04', 'Insumos electrónicos — Proveedor X',     'Insumos',    'Gasto',    54200, 'Proveedor X'),
+  ('2026-05-03', 'Aporte de inversión — Guillermo R.',     'Inversión',  'Ingreso',  79500, 'Guillermo R.'),
+  ('2026-05-02', 'Honorarios desarrollador — Freelance',   'RRHH',       'Gasto',    65000, 'Freelance'),
+  ('2026-05-01', 'Licencias de software',                  'Tecnología', 'Gasto',    22100, 'Adobe');
+
+
