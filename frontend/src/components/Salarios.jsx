@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
 import {
-  Users, DollarSign, Tag, Plus, Trash2, Edit2, X, ChevronDown, Lock,
+  Users, DollarSign, Tag, Plus, Trash2, X, ChevronDown, Lock,
 } from 'lucide-react'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -474,9 +474,9 @@ function TabMovimientos() {
                     <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => abrirEditar(m)}
-                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
                       >
-                        <Edit2 size={13} />
+                        Editar
                       </button>
                       <button
                         onClick={() => eliminar(m.id)}

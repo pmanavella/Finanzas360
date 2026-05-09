@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Search, Filter, Edit2, Trash2, RefreshCw, ChevronDown } from 'lucide-react'
+import { Plus, Search, Filter, Trash2, RefreshCw, ChevronDown } from 'lucide-react'
 import { api } from '../lib/api'
 import FormMovimiento from './FormMovimiento'
 
@@ -187,10 +187,9 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                         <button
                           onClick={() => { setEditItem(m); setShowForm(true) }}
-                          className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-300 hover:text-blue-500 transition-colors"
-                          title="Editar"
+                          className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
                         >
-                          <Edit2 size={13} />
+                          Editar
                         </button>
                         <button
                           onClick={() => setConfirmDelete(m)}

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, TrendingUp, TrendingDown,
   FileText, Upload, LogOut, Menu, X,
   CreditCard, Users, Wallet, ChevronDown,
-  LayoutGrid, ArrowUpDown, Settings
+  LayoutGrid, ArrowUpDown, Settings, LayoutList
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import LogoIcon from './LogoIcon'
@@ -14,6 +14,7 @@ function getUserFromStorage() {
 
 const navItems = [
   { id: 'dashboard',    label: 'Dashboard',     icon: LayoutDashboard, group: 'PRINCIPAL'     },
+  { id: 'todos',        label: 'Todos',           icon: LayoutList,      group: 'MOVIMIENTOS'   },
   { id: 'ingresos',     label: 'Ingresos',       icon: TrendingUp,      group: 'MOVIMIENTOS'   },
   { id: 'gastos',       label: 'Gastos',         icon: TrendingDown,    group: 'MOVIMIENTOS'   },
   { id: 'deudas',       label: 'Deudas',         icon: CreditCard,      group: 'MOVIMIENTOS'   },

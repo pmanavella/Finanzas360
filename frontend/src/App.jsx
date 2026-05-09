@@ -10,6 +10,7 @@ import ImportarExcel from './components/ImportarExcel'
 import Deudas from './components/Deudas'
 import Salarios from './components/Salarios'
 import Usuarios from './components/Usuarios'
+import TodosMovimientos from './components/TodosMovimientos'
 
 function getUserFromStorage() {
   try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
@@ -39,6 +40,7 @@ function FinancialApp() {
       {page === 'salarios'     && <Salarios user={user} />}
       {page === 'comprobantes' && <Comprobantes />}
       {page === 'excel'        && <ImportarExcel />}
+      {page === 'todos'        && <TodosMovimientos />}
       {page === 'usuarios'     && <Usuarios />}
     </Layout>
   )

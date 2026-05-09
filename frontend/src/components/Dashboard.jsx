@@ -205,7 +205,7 @@ export default function Dashboard({ onNavigate }) {
                   </button>
                 ))}
               </div>
-              <button onClick={() => onNavigate('ingresos')}
+              <button onClick={() => onNavigate('todos')}
                 className="text-xs font-bold hidden sm:flex items-center gap-1 transition-opacity hover:opacity-60"
                 style={{ color:'#16a34a' }}>
                 Ver todos →
