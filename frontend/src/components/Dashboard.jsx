@@ -97,12 +97,15 @@ const ChartTooltip = ({ active, payload }) => {
 
 /* ── Dashboard ────────────────────────────────────────── */
 export default function Dashboard({ onNavigate }) {
-  const [metricas,   setMetricas]   = useState(null)
-  const [movs,       setMovs]       = useState([])
-  const [comps,      setComps]      = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [error,      setError]      = useState(null)
-  const [filtro,     setFiltro]     = useState('Todos')
+  const [metricas,        setMetricas]        = useState(null)
+  const [movs,            setMovs]            = useState([])
+  const [allMovs,         setAllMovs]         = useState([])
+  const [comps,           setComps]           = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [error,           setError]           = useState(null)
+  const [filtro,          setFiltro]          = useState('Todos')
+  const [periodoGrafico,  setPeriodoGrafico]  = useState('mes')
+  const [showPeriodoMenu, setShowPeriodoMenu] = useState(false)
 
   const cargar = async () => {
     setLoading(true); setError(null)
@@ -111,6 +114,7 @@ export default function Dashboard({ onNavigate }) {
         api.getMetricas(), api.getMovimientos(), api.getComprobantes(),
       ])
       setMetricas(m)
+      setAllMovs(mov.data)
       setMovs(mov.data.slice(0, 7))
       setComps(comp.data.slice(0, 6))
     } catch (e) { setError(e.message) }
@@ -139,7 +143,18 @@ export default function Dashboard({ onNavigate }) {
   )
 
   const user = (() => { try { return JSON.parse(localStorage.getItem('user')) } catch { return null } })()
-  const pieData = metricas?.gastosPorCategoria?.map(g => ({ name: g.categoria, value: g.total })) || []
+  const now = new Date()
+  const periodoStart = periodoGrafico === 'mes'
+    ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    : `${now.getFullYear()}-01-01`
+  const pieData = allMovs
+    .filter(m => m.tipo === 'Gasto' && m.fecha >= periodoStart)
+    .reduce((acc, m) => {
+      const found = acc.find(e => e.name === m.categoria)
+      if (found) found.value += Number(m.monto)
+      else acc.push({ name: m.categoria, value: Number(m.monto) })
+      return acc
+    }, [])
   const movFiltrados = filtro === 'Todos' ? movs : movs.filter(m => m.tipo === (filtro === 'Ingresos' ? 'Ingreso' : 'Gasto'))
   const delays = ['delay-0','delay-75','delay-150','delay-225']
 
@@ -276,9 +291,28 @@ export default function Dashboard({ onNavigate }) {
         <div className="card p-5 animate-slideUp delay-400">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[14px] font-bold text-ink">Gastos por categoría</h3>
-            <button className="flex items-center gap-1 text-xs text-gray-500 font-medium px-2.5 py-1.5 rounded-lg border border-muted hover:bg-cream transition-colors">
-              Este mes <ChevronDown size={12} />
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowPeriodoMenu(v => !v)}
+                className="flex items-center gap-1 text-xs text-gray-500 font-medium px-2.5 py-1.5 rounded-lg border border-muted hover:bg-cream transition-colors">
+                {periodoGrafico === 'mes' ? 'Este mes' : 'Este año'} <ChevronDown size={12} className={`transition-transform duration-150 ${showPeriodoMenu ? 'rotate-180' : ''}`} />
+              </button>
+              {showPeriodoMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowPeriodoMenu(false)} />
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-muted rounded-xl shadow-lg py-1 z-20 w-28">
+                    {[['mes', 'Este mes'], ['año', 'Este año']].map(([val, label]) => (
+                      <button key={val}
+                        onClick={() => { setPeriodoGrafico(val); setShowPeriodoMenu(false) }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-cream transition-colors"
+                        style={{ color: periodoGrafico === val ? '#0a3b24' : '#6b7280', fontWeight: periodoGrafico === val ? 700 : 500 }}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {pieData.length > 0 ? (
