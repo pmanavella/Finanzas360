@@ -293,7 +293,7 @@ export default function Deudas() {
                           )}
                           <button onClick={() => { setEditItem(d); setShowForm(true) }}
                             className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100">
-                            ✏️
+                            Editar
                           </button>
                           <button onClick={() => setConfirmDelete(d)}
                             className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">

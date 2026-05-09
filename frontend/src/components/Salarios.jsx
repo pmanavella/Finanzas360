@@ -18,7 +18,7 @@ const TIPO_SALARIO_LABEL = { mensual: 'Mensual', hora: 'Por hora', turno: 'Por t
 const MONTO_BASE_LABEL   = { mensual: 'Monto mensual', hora: 'Monto por hora', turno: 'Monto por turno' }
 
 const BADGE = {
-  'Planta':    { bg: '#E1F5EE', color: '#0F6E56' },
+  'Planta':    { bg: '#DBEAFE', color: '#1E40AF' },
   'Temporal':  { bg: '#FEF3C7', color: '#92400E' },
   'Mensual':   { bg: '#EFF6FF', color: '#1D4ED8' },
   'Por Turno': { bg: '#F3E8FF', color: '#6B21A8' },

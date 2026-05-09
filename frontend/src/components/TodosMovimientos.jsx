@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, LayoutList } from 'lucide-react'
+import { RefreshCw, LayoutList, BookOpen } from 'lucide-react'
 import { api } from '../lib/api'
+import LibroDiario from './LibroDiario'
 
 const TIPOS = ['Todos', 'Ingreso', 'Gasto', 'Deuda', 'Salario']
 
@@ -8,7 +9,7 @@ const TIPO_STYLE = {
   Ingreso: { bg: '#dcfce7', color: '#16a34a', prefix: '+' },
   Gasto:   { bg: '#fee2e2', color: '#ef4444', prefix: '−' },
   Deuda:   { bg: '#fef3c7', color: '#d97706', prefix: ''  },
-  Salario: { bg: '#e0f2fe', color: '#0284c7', prefix: ''  },
+  Salario: { bg: '#fee2e2', color: '#ef4444', prefix: ''  },
 }
 
 function fmt(n) {
@@ -55,9 +56,10 @@ function normalizeSalarios(data = []) {
 }
 
 export default function TodosMovimientos() {
-  const [items,   setItems]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filtro,  setFiltro]  = useState('Todos')
+  const [items,      setItems]      = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [filtro,     setFiltro]     = useState('Todos')
+  const [libroOpen,  setLibroOpen]  = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -81,10 +83,17 @@ export default function TodosMovimientos() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const filtrados = filtro === 'Todos' ? items : items.filter(i => i.tipo === filtro)
+  // Salarios se incluyen en la vista Gastos (sin duplicar registros)
+  const filtrados = filtro === 'Todos'
+    ? items
+    : filtro === 'Gasto'
+      ? items.filter(i => i.tipo === 'Gasto' || i.tipo === 'Salario')
+      : items.filter(i => i.tipo === filtro)
 
   const conteo = TIPOS.slice(1).reduce((acc, t) => {
-    acc[t] = items.filter(i => i.tipo === t).length
+    acc[t] = t === 'Gasto'
+      ? items.filter(i => i.tipo === 'Gasto' || i.tipo === 'Salario').length
+      : items.filter(i => i.tipo === t).length
     return acc
   }, {})
 
@@ -99,9 +108,15 @@ export default function TodosMovimientos() {
             {filtrados.length} registros · {items.length} en total
           </p>
         </div>
-        <button onClick={cargar} className="btn-secondary px-3" title="Actualizar">
-          <RefreshCw size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={cargar} className="btn-secondary px-3" title="Actualizar">
+            <RefreshCw size={14} />
+          </button>
+          <button onClick={() => setLibroOpen(true)} className="btn-primary">
+            <BookOpen size={14} />
+            Libro diario
+          </button>
+        </div>
       </div>
 
       {/* Filtros por tipo */}
@@ -187,6 +202,8 @@ export default function TodosMovimientos() {
           </div>
         )}
       </div>
+
+      {libroOpen && <LibroDiario onClose={() => setLibroOpen(false)} />}
     </div>
   )
 }

@@ -24,16 +24,76 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api.getMovimientos({
-        tipo,
-        categoria: filtros.categoria,
-        fecha_desde: filtros.fecha_desde,
-        fecha_hasta: filtros.fecha_hasta,
-        search: filtros.search,
-      })
-      setItems(data.data)
-      const suma = data.data.reduce((s, m) => s + Number(m.monto), 0)
-      setTotales({ count: data.data.length, suma })
+      if (tipo !== 'Gasto') {
+        // Ingresos: lógica sin cambios
+        const data = await api.getMovimientos({
+          tipo,
+          categoria: filtros.categoria,
+          fecha_desde: filtros.fecha_desde,
+          fecha_hasta: filtros.fecha_hasta,
+          search: filtros.search,
+        })
+        setItems(data.data)
+        const suma = data.data.reduce((s, m) => s + Number(m.monto), 0)
+        setTotales({ count: data.data.length, suma })
+        return
+      }
+
+      // Gastos: combina movimientos regulares + movimientos salariales
+      const [movRes, salRes] = await Promise.allSettled([
+        api.getMovimientos({
+          tipo,
+          categoria: filtros.categoria,
+          fecha_desde: filtros.fecha_desde,
+          fecha_hasta: filtros.fecha_hasta,
+          search: filtros.search,
+        }),
+        api.getMovimientosSalario({
+          fecha_desde: filtros.fecha_desde || undefined,
+          fecha_hasta: filtros.fecha_hasta || undefined,
+        }),
+      ])
+
+      const movs = movRes.status === 'fulfilled' ? (movRes.value.data || []) : []
+
+      const rawSals = salRes.status === 'fulfilled' ? (salRes.value.data || []) : []
+      const sals = rawSals
+        .filter(s => {
+          // Búsqueda client-side sobre nombre + categoría salarial
+          if (filtros.search) {
+            const nombre = s.empleados
+              ? `${s.empleados.nombre} ${s.empleados.apellido}`
+              : ''
+            const cat = s.categorias_salariales?.nombre || ''
+            if (!`${nombre} ${cat}`.toLowerCase().includes(filtros.search.toLowerCase())) return false
+          }
+          // Si hay filtro de categoría activo, los salarios no coinciden → omitir
+          if (filtros.categoria && filtros.categoria !== 'Todos') return false
+          return true
+        })
+        .map(s => {
+          const nombre = s.empleados
+            ? `${s.empleados.nombre} ${s.empleados.apellido}`
+            : '—'
+          const cat = s.categorias_salariales?.nombre || 'Sueldo Base'
+          return {
+            id:                s.id,
+            fecha:             s.fecha,
+            descripcion:       cat ? `${nombre} — ${cat}` : nombre,
+            categoria:         cat,
+            tipo:              'Salario',
+            monto:             Number(s.monto),
+            proveedor_cliente: null,
+            notas:             null,
+            comprobantes:      [],
+            _isSalario:        true,
+          }
+        })
+
+      const merged = [...movs, ...sals].sort((a, b) => b.fecha.localeCompare(a.fecha))
+      setItems(merged)
+      const suma = merged.reduce((s, m) => s + Number(m.monto), 0)
+      setTotales({ count: merged.length, suma })
     } catch (e) {
       console.error(e)
     } finally {
@@ -153,7 +213,7 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
               </thead>
               <tbody>
                 {items.map(m => (
-                  <tr key={m.id} className="table-row group">
+                  <tr key={m._isSalario ? `sal-${m.id}` : m.id} className="table-row group">
                     <td className="table-cell text-gray-500 whitespace-nowrap text-xs">
                       {new Date(m.fecha + 'T00:00:00').toLocaleDateString('es-AR')}
                     </td>
@@ -184,21 +244,23 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
                       {fmt(m.monto)}
                     </td>
                     <td className="table-cell">
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                        <button
-                          onClick={() => { setEditItem(m); setShowForm(true) }}
-                          className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(m)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+                      {!m._isSalario && (
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                          <button
+                            onClick={() => { setEditItem(m); setShowForm(true) }}
+                            className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(m)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
