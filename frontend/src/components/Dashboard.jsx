@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 
 /* ── Colores ──────────────────────────────────────────── */
 const CAT_COLORS = {
@@ -175,14 +176,16 @@ export default function Dashboard({ onNavigate }) {
             <p className="text-xs text-gray-400 capitalize">{todayStr()}</p>
           </div>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
-          <button onClick={() => onNavigate('gastos')} className="btn-secondary">
-            <TrendingDown size={14} /> Nuevo Gasto
-          </button>
-          <button onClick={() => onNavigate('ingresos')} className="btn-primary">
-            <Plus size={14} /> Nuevo Ingreso
-          </button>
-        </div>
+        {canWrite() && (
+          <div className="flex gap-2 flex-shrink-0">
+            <button onClick={() => onNavigate('gastos')} className="btn-secondary">
+              <TrendingDown size={14} /> Nuevo Gasto
+            </button>
+            <button onClick={() => onNavigate('ingresos')} className="btn-primary">
+              <Plus size={14} /> Nuevo Ingreso
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Métricas ───────────────────────────────────── */}

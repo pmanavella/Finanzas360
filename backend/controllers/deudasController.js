@@ -26,7 +26,7 @@ const obtener = async (req, res, next) => {
 
 const crear = async (req, res, next) => {
   try {
-    res.status(201).json(await deudasService.crear(req.body));
+    res.status(201).json(await deudasService.crear(req.body, req.user?.email));
   } catch (err) {
     next(err);
   }

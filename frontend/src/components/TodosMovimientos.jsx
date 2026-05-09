@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { RefreshCw, LayoutList, BookOpen } from 'lucide-react'
+import { RefreshCw, LayoutList, BookOpen, Activity } from 'lucide-react'
 import { api } from '../lib/api'
+import { canAccessAdmin } from '../lib/permissions'
 import LibroDiario from './LibroDiario'
+import Trazabilidad from './Trazabilidad'
 
 const TIPOS = ['Todos', 'Ingreso', 'Gasto', 'Deuda', 'Salario']
 
@@ -56,10 +58,12 @@ function normalizeSalarios(data = []) {
 }
 
 export default function TodosMovimientos() {
-  const [items,      setItems]      = useState([])
-  const [loading,    setLoading]    = useState(true)
-  const [filtro,     setFiltro]     = useState('Todos')
-  const [libroOpen,  setLibroOpen]  = useState(false)
+  const [items,           setItems]           = useState([])
+  const [loading,         setLoading]         = useState(true)
+  const [filtro,          setFiltro]          = useState('Todos')
+  const [libroOpen,       setLibroOpen]       = useState(false)
+  const [trazabilidadOpen,setTrazabilidadOpen] = useState(false)
+  const isAdmin = canAccessAdmin()
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -112,6 +116,12 @@ export default function TodosMovimientos() {
           <button onClick={cargar} className="btn-secondary px-3" title="Actualizar">
             <RefreshCw size={14} />
           </button>
+          {isAdmin && (
+            <button onClick={() => setTrazabilidadOpen(true)} className="btn-secondary">
+              <Activity size={14} />
+              Trazabilidad
+            </button>
+          )}
           <button onClick={() => setLibroOpen(true)} className="btn-primary">
             <BookOpen size={14} />
             Libro diario
@@ -203,7 +213,8 @@ export default function TodosMovimientos() {
         )}
       </div>
 
-      {libroOpen && <LibroDiario onClose={() => setLibroOpen(false)} />}
+      {libroOpen       && <LibroDiario    onClose={() => setLibroOpen(false)} />}
+      {trazabilidadOpen && <Trazabilidad  onClose={() => setTrazabilidadOpen(false)} />}
     </div>
   )
 }

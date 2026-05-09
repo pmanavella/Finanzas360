@@ -19,6 +19,13 @@ async function findById(id) {
   return supabase.from('movimientos').select('*, comprobantes(*)').eq('id', id).single();
 }
 
+async function getTrazabilidad() {
+  return supabase
+    .from('movimientos')
+    .select('id, fecha, descripcion, tipo, monto, created_by, created_at')
+    .order('created_at', { ascending: false, nullsFirst: false });
+}
+
 async function create(data) {
   return supabase.from('movimientos').insert([data]).select().single();
 }
@@ -46,6 +53,7 @@ async function getGastosByCategoriaInRange(startDate, endDate) {
 module.exports = {
   findAll,
   findById,
+  getTrazabilidad,
   create,
   update,
   remove,

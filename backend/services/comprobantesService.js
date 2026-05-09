@@ -97,7 +97,7 @@ function extraerDatosOCR(texto) {
   return resultado;
 }
 
-async function upload(file, movimientoId) {
+async function upload(file, movimientoId, createdBy) {
   const ext = file.originalname.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
   const storagePath = `comprobantes/${fileName}`;
@@ -141,7 +141,8 @@ async function upload(file, movimientoId) {
     ocr_texto: ocrTexto ? ocrTexto.substring(0, 5000) : null,
     ocr_fecha: ocrFecha,
     ocr_monto: ocrMonto,
-    ocr_proveedor: ocrProveedor
+    ocr_proveedor: ocrProveedor,
+    created_by: createdBy || null,
   });
 
   if (dbError) throw dbError;

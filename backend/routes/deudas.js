@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { listar, metricas, obtener, crear, actualizar, eliminar } = require('../controllers/deudasController');
+const { requireAuth, requireRole } = require('../middleware/rbacMiddleware');
 
-router.get('/',         listar);
-router.get('/metricas', metricas);
-router.get('/:id',      obtener);
-router.post('/',        crear);
-router.put('/:id',      actualizar);
-router.delete('/:id',   eliminar);
+const canWrite = requireRole('admin', 'usuario');
+
+router.get('/',         requireAuth, listar);
+router.get('/metricas', requireAuth, metricas);
+router.get('/:id',      requireAuth, obtener);
+router.post('/',        canWrite,    crear);
+router.put('/:id',      canWrite,    actualizar);
+router.delete('/:id',   canWrite,    eliminar);
 
 module.exports = router;

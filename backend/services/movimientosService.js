@@ -14,7 +14,7 @@ async function getById(id) {
   return data;
 }
 
-async function create(body) {
+async function create(body, createdBy) {
   const { fecha, descripcion, categoria, tipo, monto, proveedor_cliente, notas } = body;
 
   if (!fecha || !descripcion || !categoria || !tipo || !monto) {
@@ -31,7 +31,8 @@ async function create(body) {
   }
 
   const { data, error } = await movimientosRepository.create({
-    fecha, descripcion, categoria, tipo, monto: Number(monto), proveedor_cliente, notas
+    fecha, descripcion, categoria, tipo, monto: Number(monto), proveedor_cliente, notas,
+    created_by: createdBy || null,
   });
   if (error) throw error;
   return data;
@@ -122,4 +123,10 @@ async function getMetricas({ mes, anio } = {}) {
   };
 }
 
-module.exports = { getAll, getById, create, update, remove, getMetricas };
+async function getTrazabilidad() {
+  const { data, error } = await movimientosRepository.getTrazabilidad();
+  if (error) throw error;
+  return { data, total: data.length };
+}
+
+module.exports = { getAll, getById, create, update, remove, getMetricas, getTrazabilidad };

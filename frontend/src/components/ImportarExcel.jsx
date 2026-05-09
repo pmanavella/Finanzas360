@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
-import { Upload, CheckCircle, XCircle, AlertCircle, Download, RefreshCw, FileSpreadsheet } from 'lucide-react'
+import { Upload, CheckCircle, XCircle, AlertCircle, Download, RefreshCw, FileSpreadsheet, Lock } from 'lucide-react'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 
 const COLUMNAS = ['fecha', 'descripcion', 'categoria', 'tipo', 'monto', 'proveedor_cliente (opcional)', 'notas (opcional)']
 
@@ -69,6 +70,20 @@ export default function ImportarExcel() {
     link.href = URL.createObjectURL(blob)
     link.download = 'plantilla_finanzas360.csv'
     link.click()
+  }
+
+  if (!canWrite()) {
+    return (
+      <div className="animate-fadeIn flex flex-col items-center justify-center h-72 gap-4">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: '#FEE2E2' }}>
+          <Lock size={28} color="#991B1B" />
+        </div>
+        <div className="text-center">
+          <p className="font-semibold text-[18px] text-gray-800">Sin permisos</p>
+          <p className="text-[13px] text-gray-400 mt-1">Tu rol no permite importar datos.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

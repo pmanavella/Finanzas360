@@ -12,7 +12,7 @@ class SalariosController {
   }
 
   async crearEmpleado(req, res, next) {
-    try { res.status(201).json(await salariosService.crearEmpleado(req.body)) }
+    try { res.status(201).json(await salariosService.crearEmpleado(req.body, req.user?.email)) }
     catch (err) { next(err) }
   }
 
@@ -32,7 +32,7 @@ class SalariosController {
   }
 
   async crearCategoria(req, res, next) {
-    try { res.status(201).json(await salariosService.crearCategoria(req.body)) }
+    try { res.status(201).json(await salariosService.crearCategoria(req.body, req.user?.email)) }
     catch (err) { next(err) }
   }
 
@@ -47,7 +47,7 @@ class SalariosController {
   }
 
   async crearMovimiento(req, res, next) {
-    try { res.status(201).json(await salariosService.crearMovimiento(req.body)) }
+    try { res.status(201).json(await salariosService.crearMovimiento(req.body, req.user?.email)) }
     catch (err) { next(err) }
   }
 

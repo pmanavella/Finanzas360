@@ -1,29 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/salariosController');
-const { requireRole } = require('../middleware/rbacMiddleware');
+const { requireAuth, requireRole } = require('../middleware/rbacMiddleware');
 
-const soloAdmin = requireRole('admin');
+const canRead  = requireAuth;
+const canWrite = requireRole('admin', 'usuario');
 
 // Métricas
-router.get('/metricas', soloAdmin, ctrl.metricas.bind(ctrl));
+router.get('/metricas', canRead, ctrl.metricas.bind(ctrl));
 
 // Empleados
-router.get('/empleados',        soloAdmin, ctrl.listarEmpleados.bind(ctrl));
-router.get('/empleados/:id',    soloAdmin, ctrl.obtenerEmpleado.bind(ctrl));
-router.post('/empleados',       soloAdmin, ctrl.crearEmpleado.bind(ctrl));
-router.put('/empleados/:id',    soloAdmin, ctrl.actualizarEmpleado.bind(ctrl));
-router.delete('/empleados/:id', soloAdmin, ctrl.eliminarEmpleado.bind(ctrl));
+router.get('/empleados',        canRead,  ctrl.listarEmpleados.bind(ctrl));
+router.get('/empleados/:id',    canRead,  ctrl.obtenerEmpleado.bind(ctrl));
+router.post('/empleados',       canWrite, ctrl.crearEmpleado.bind(ctrl));
+router.put('/empleados/:id',    canWrite, ctrl.actualizarEmpleado.bind(ctrl));
+router.delete('/empleados/:id', canWrite, ctrl.eliminarEmpleado.bind(ctrl));
 
 // Categorías
-router.get('/categorias',        soloAdmin, ctrl.listarCategorias.bind(ctrl));
-router.post('/categorias',       soloAdmin, ctrl.crearCategoria.bind(ctrl));
-router.delete('/categorias/:id', soloAdmin, ctrl.eliminarCategoria.bind(ctrl));
+router.get('/categorias',        canRead,  ctrl.listarCategorias.bind(ctrl));
+router.post('/categorias',       canWrite, ctrl.crearCategoria.bind(ctrl));
+router.delete('/categorias/:id', canWrite, ctrl.eliminarCategoria.bind(ctrl));
 
 // Movimientos salariales
-router.get('/movimientos',        soloAdmin, ctrl.listarMovimientos.bind(ctrl));
-router.post('/movimientos',       soloAdmin, ctrl.crearMovimiento.bind(ctrl));
-router.put('/movimientos/:id',    soloAdmin, ctrl.actualizarMovimiento.bind(ctrl));
-router.delete('/movimientos/:id', soloAdmin, ctrl.eliminarMovimiento.bind(ctrl));
+router.get('/movimientos',        canRead,  ctrl.listarMovimientos.bind(ctrl));
+router.post('/movimientos',       canWrite, ctrl.crearMovimiento.bind(ctrl));
+router.put('/movimientos/:id',    canWrite, ctrl.actualizarMovimiento.bind(ctrl));
+router.delete('/movimientos/:id', canWrite, ctrl.eliminarMovimiento.bind(ctrl));
 
 module.exports = router;

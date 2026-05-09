@@ -8,32 +8,42 @@ const supabase = createClient(
 );
 
 async function seedAdmin() {
-  const email = 'admin@finanzas360.com';
+  const email    = 'admin@finanzas360.com';
   const password = 'admin123';
-  const nombre = 'Administrador';
-  const rol = 'admin';
+  const nombre   = 'Administrador';
 
   console.log('🌱 Iniciando seed de usuario admin...');
   console.log(`   Email:    ${email}`);
   console.log(`   Password: ${password}`);
 
+  // Obtener el rol 'admin'
+  const { data: rol, error: rolError } = await supabase
+    .from('roles')
+    .select('id')
+    .eq('nombre', 'admin')
+    .single();
+
+  if (rolError || !rol) {
+    console.error('❌ No se encontró el rol "admin" en la tabla roles.');
+    console.error('   Ejecutá primero: supabase/migration_auth_unification.sql en Supabase SQL Editor');
+    process.exit(1);
+  }
+
   const hashed_password = await bcrypt.hash(password, 10);
   console.log(`   Hash:     ${hashed_password}`);
 
   const { data, error } = await supabase
-    .from('users')
+    .from('usuarios')
     .upsert(
-      { email, nombre, hashed_password, rol, is_active: true },
+      { email, nombre, hashed_password, rol_id: rol.id, estado: 'Activo' },
       { onConflict: 'email' }
     )
-    .select('id, email, nombre, rol, is_active');
+    .select('id, email, nombre, estado, roles (nombre)');
 
   if (error) {
     console.error('❌ Error al insertar usuario admin:', error.message);
     if (error.details) console.error('   Detalle:', error.details);
     if (error.hint)    console.error('   Hint:', error.hint);
-    console.error('\n⚠️  Si la tabla "users" no existe, ejecutá primero:');
-    console.error('   supabase/create_users_table.sql en el SQL Editor de Supabase\n');
     process.exit(1);
   }
 

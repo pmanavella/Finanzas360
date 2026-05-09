@@ -29,7 +29,7 @@ async function getById(req, res) {
 
 async function create(req, res) {
   try {
-    const data = await movimientosService.create(req.body);
+    const data = await movimientosService.create(req.body, req.user?.email);
     res.status(201).json(data);
   } catch (err) {
     res.status(err.status || 500).json({ error: err.message });
@@ -54,4 +54,13 @@ async function remove(req, res) {
   }
 }
 
-module.exports = { getAll, getMetricas, getById, create, update, remove };
+async function getTrazabilidad(req, res) {
+  try {
+    const result = await movimientosService.getTrazabilidad();
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+}
+
+module.exports = { getAll, getMetricas, getById, create, update, remove, getTrazabilidad };

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Trash2, Eye, RefreshCw, FileText, Image, Plus, Save, X } from 'lucide-react'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 
 const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
 
@@ -206,7 +207,7 @@ function DetallePanel({ comprobante, onRegistrar, onEliminar }) {
       )}
 
       <div className="space-y-2">
-        {!tieneMovimiento && (
+        {!tieneMovimiento && onRegistrar && (
           <button onClick={onRegistrar} className="btn-primary w-full justify-center">
             <Plus size={15} /> Registrar como ingreso / gasto
           </button>
@@ -216,9 +217,11 @@ function DetallePanel({ comprobante, onRegistrar, onEliminar }) {
             className="btn-secondary flex-1 justify-center text-xs">
             <Eye size={13} /> Ver archivo
           </a>
-          <button onClick={onEliminar} className="btn-danger flex-1 justify-center text-xs">
-            <Trash2 size={13} /> Eliminar
-          </button>
+          {onEliminar && (
+            <button onClick={onEliminar} className="btn-danger flex-1 justify-center text-xs">
+              <Trash2 size={13} /> Eliminar
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -226,6 +229,7 @@ function DetallePanel({ comprobante, onRegistrar, onEliminar }) {
 }
 
 export default function Comprobantes() {
+  const puedeEscribir = canWrite()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -297,16 +301,18 @@ export default function Comprobantes() {
             {items.length} archivos · Subí un comprobante y registralo como ingreso o gasto
           </p>
         </div>
-        <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
-          <Upload size={16} />
-          {uploading ? 'Procesando OCR...' : 'Subir comprobante'}
-          <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,application/pdf"
-            onChange={handleUpload} className="hidden" />
-        </label>
+        {puedeEscribir && (
+          <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+            <Upload size={16} />
+            {uploading ? 'Procesando OCR...' : 'Subir comprobante'}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,application/pdf"
+              onChange={handleUpload} className="hidden" />
+          </label>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 card overflow-hidden">
+      <div className={`grid grid-cols-1 gap-4 ${puedeEscribir ? 'lg:grid-cols-3' : ''}`}>
+        <div className={`${puedeEscribir ? 'lg:col-span-2' : ''} card overflow-hidden`}>
           {loading ? (
             <div className="flex items-center justify-center h-48 text-gray-400">
               <RefreshCw size={20} className="animate-spin mr-2" /> Cargando...
@@ -354,25 +360,29 @@ export default function Comprobantes() {
                             <span className="text-gray-400">·</span>
                             <span className="text-gray-600 truncate max-w-[80px]">{c.movimientos.descripcion}</span>
                           </div>
-                        ) : (
+                        ) : puedeEscribir ? (
                           <button
                             onClick={e => { e.stopPropagation(); setSelected(c); setRegistrando(true) }}
                             className="text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 text-xs"
                           >
                             <Plus size={11} /> Registrar
                           </button>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Sin registrar</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-gray-500 text-xs whitespace-nowrap">
                         {new Date(c.created_at).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-3 px-4">
-                        <button
-                          onClick={e => { e.stopPropagation(); setConfirmDelete(c) }}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {puedeEscribir && (
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDelete(c) }}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -391,28 +401,30 @@ export default function Comprobantes() {
           )}
         </div>
 
-        <div className="card p-5">
-          {selected && registrando ? (
-            <RegistrarMovimientoPanel
-              comprobante={selected}
-              onGuardado={() => { setRegistrando(false); cargar() }}
-              onCancelar={() => setRegistrando(false)}
-            />
-          ) : selected ? (
-            <DetallePanel
-              comprobante={selected}
-              onRegistrar={() => setRegistrando(true)}
-              onEliminar={() => setConfirmDelete(selected)}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
-              <FileText size={36} className="mb-3 opacity-20" />
-              <p className="text-sm text-center leading-relaxed">
-                Seleccioná un comprobante para ver el detalle o subí uno nuevo para registrarlo
-              </p>
-            </div>
-          )}
-        </div>
+        {puedeEscribir && (
+          <div className="card p-5">
+            {selected && registrando ? (
+              <RegistrarMovimientoPanel
+                comprobante={selected}
+                onGuardado={() => { setRegistrando(false); cargar() }}
+                onCancelar={() => setRegistrando(false)}
+              />
+            ) : selected ? (
+              <DetallePanel
+                comprobante={selected}
+                onRegistrar={() => setRegistrando(true)}
+                onEliminar={() => setConfirmDelete(selected)}
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
+                <FileText size={36} className="mb-3 opacity-20" />
+                <p className="text-sm text-center leading-relaxed">
+                  Seleccioná un comprobante para ver el detalle o subí uno nuevo para registrarlo
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {confirmDelete && (

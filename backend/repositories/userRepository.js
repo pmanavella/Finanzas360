@@ -2,8 +2,8 @@ const supabase = require('../config/supabaseClient');
 
 async function findByEmail(email) {
   return supabase
-    .from('users')
-    .select('id, email, nombre, hashed_password, rol, is_active')
+    .from('usuarios')
+    .select('id, email, nombre, hashed_password, estado, rol_id, roles (nombre)')
     .eq('email', email)
     .single();
 }

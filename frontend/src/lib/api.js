@@ -1,20 +1,15 @@
 import { API_URL } from './supabase'
 
-function getRole() {
-  try {
-    const raw = localStorage.getItem('user')
-    return raw ? JSON.parse(raw).rol : null
-  } catch {
-    return null
-  }
+function getToken() {
+  return localStorage.getItem('token') || null
 }
 
 async function request(path, options = {}) {
-  const role = getRole()
+  const token = getToken()
   const res = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(role ? { 'X-User-Role': role } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,
@@ -36,6 +31,7 @@ export const api = {
     const qs = new URLSearchParams(params).toString()
     return request(`/api/movimientos/metricas${qs ? `?${qs}` : ''}`)
   },
+  getTrazabilidad: () => request('/api/movimientos/trazabilidad'),
   getMovimiento: (id) => request(`/api/movimientos/${id}`),
   crearMovimiento: (body) => request('/api/movimientos', { method: 'POST', body: JSON.stringify(body) }),
   editarMovimiento: (id, body) => request(`/api/movimientos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
@@ -44,10 +40,11 @@ export const api = {
   // Comprobantes
   getComprobantes: () => request('/api/comprobantes'),
   subirComprobante: (formData) => {
-    const role = getRole()
+    const token = getToken()
     return fetch(`${API_URL}/api/comprobantes/upload`, {
-      method: 'POST', body: formData,
-      headers: role ? { 'X-User-Role': role } : {},
+      method: 'POST',
+      body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
   },
   vincularComprobante: (id, movimiento_id) =>
@@ -56,17 +53,19 @@ export const api = {
 
   // Excel
   validarExcel: (formData) => {
-    const role = getRole()
+    const token = getToken()
     return fetch(`${API_URL}/api/excel/validar`, {
-      method: 'POST', body: formData,
-      headers: role ? { 'X-User-Role': role } : {},
+      method: 'POST',
+      body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
   },
   importarExcel: (formData) => {
-    const role = getRole()
+    const token = getToken()
     return fetch(`${API_URL}/api/excel/importar`, {
-      method: 'POST', body: formData,
-      headers: role ? { 'X-User-Role': role } : {},
+      method: 'POST',
+      body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d })
   },
   getPlantillaInfo: () => request('/api/excel/plantilla'),

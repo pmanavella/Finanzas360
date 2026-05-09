@@ -6,10 +6,19 @@ import {
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import LogoIcon from './LogoIcon'
+import { canAccessAdmin } from '../lib/permissions'
 
 function getUserFromStorage() {
   try { return JSON.parse(localStorage.getItem('user')) }
   catch { return null }
+}
+
+function getInitials(nombre) {
+  if (!nombre) return 'U'
+  const words = nombre.trim().split(/\s+/)
+  const first = words[0]?.[0] ?? ''
+  const last  = words.length > 1 ? words[words.length - 1][0] : ''
+  return (first + last).toUpperCase() || 'U'
 }
 
 const navItems = [
@@ -102,7 +111,9 @@ export default function Layout({ children, page, onNavigate }) {
   const [showLogout, setShowLogout] = useState(false)
   const user = getUserFromStorage()
 
-  const groups = [...new Set(navItems.map(i => i.group))]
+  const isAdmin = canAccessAdmin()
+  const visibleItems = isAdmin ? navItems : navItems.filter(i => i.group !== 'ADMINISTRACIÓN')
+  const groups = [...new Set(visibleItems.map(i => i.group))]
   const otherGroups = groups.filter(g => g !== 'PRINCIPAL')
 
   function handleLogoutConfirm() {
@@ -146,7 +157,7 @@ export default function Layout({ children, page, onNavigate }) {
             {/* Dropdowns */}
             {otherGroups.map(group => (
               <NavDropdown key={group} group={group}
-                items={navItems.filter(i => i.group === group)}
+                items={visibleItems.filter(i => i.group === group)}
                 page={page} onNavigate={onNavigate} />
             ))}
           </nav>
@@ -158,7 +169,7 @@ export default function Layout({ children, page, onNavigate }) {
                 className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0"
                 style={{ background: '#2e8b57' }}
               >
-                {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
+                {getInitials(user?.nombre)}
               </div>
               <div className="leading-tight">
                 <p className="text-[12.5px] font-semibold text-white">{user?.nombre || 'Usuario'}</p>
@@ -198,7 +209,7 @@ export default function Layout({ children, page, onNavigate }) {
                 <div key={group}>
                   <p className="text-[9px] font-bold uppercase tracking-[0.14em] px-2 pt-3 pb-1"
                     style={{ color: GOLD }}>{GROUP_META[group]?.label || group}</p>
-                  {navItems.filter(i => i.group === group).map(item => {
+                  {visibleItems.filter(i => i.group === group).map(item => {
                     const active = page === item.id
                     return (
                       <button key={item.id}
@@ -217,7 +228,7 @@ export default function Layout({ children, page, onNavigate }) {
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
                     style={{ background: '#2e8b57' }}>
-                    {user?.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
+                    {getInitials(user?.nombre)}
                   </div>
                   <div>
                     <p className="text-[12px] font-semibold text-white">{user?.nombre || 'Usuario'}</p>

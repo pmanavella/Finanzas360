@@ -35,7 +35,7 @@ class DeudasService {
     return data;
   }
 
-  async crear(body) {
+  async crear(body, createdBy) {
     const { acreedor, descripcion, monto, vencimiento, estado, notas } = body;
     if (!acreedor || !monto || !vencimiento)
       throw Object.assign(new Error('Faltan campos obligatorios: acreedor, monto, vencimiento'), { status: 400 });
@@ -44,7 +44,7 @@ class DeudasService {
 
     const { data, error } = await supabase
       .from('deudas')
-      .insert([{ acreedor, descripcion, monto: Number(monto), vencimiento, estado: estado || 'Pendiente', notas }])
+      .insert([{ acreedor, descripcion, monto: Number(monto), vencimiento, estado: estado || 'Pendiente', notas, created_by: createdBy || null }])
       .select()
       .single();
     if (error) throw error;

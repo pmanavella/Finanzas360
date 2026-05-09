@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Trash2, RefreshCw, AlertCircle, CheckCircle, Clock, X, Save } from 'lucide-react'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 
 function fmt(n) {
   return new Intl.NumberFormat('es-AR', {
@@ -184,6 +185,7 @@ export default function Deudas() {
     }
   }
 
+  const puedeEscribir = canWrite()
   const pendientes    = items.filter(d => d.estado !== 'Pagada')
   const vencidas      = items.filter(d => d.estado !== 'Pagada' && isVencida(d.vencimiento))
   const totalPendiente = pendientes.reduce((s, d) => s + Number(d.monto), 0)
@@ -224,11 +226,13 @@ export default function Deudas() {
             style={{ borderColor: 'rgba(15,110,86,0.2)' }}>
             <RefreshCw size={14} />
           </button>
-          <button onClick={() => { setEditItem(null); setShowForm(true) }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13px] font-medium shadow-sm"
-            style={{ background: '#0F6E56' }}>
-            <Plus size={15} /> Registrar deuda
-          </button>
+          {puedeEscribir && (
+            <button onClick={() => { setEditItem(null); setShowForm(true) }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13px] font-medium shadow-sm"
+              style={{ background: '#0F6E56' }}>
+              <Plus size={15} /> Registrar deuda
+            </button>
+          )}
         </div>
       </div>
 
@@ -276,7 +280,7 @@ export default function Deudas() {
                       <td className="py-4 px-5">{estadoChip(d)}</td>
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-2 justify-end">
-                          {!pagada && (
+                          {!pagada && puedeEscribir && (
                             <button onClick={() => handlePagar(d)} disabled={pagandoId === d.id}
                               className="px-4 py-1.5 rounded-lg text-[12.5px] font-medium border transition-all disabled:opacity-50"
                               style={venc
@@ -291,14 +295,18 @@ export default function Deudas() {
                               <CheckCircle size={14} /> Pagada
                             </span>
                           )}
-                          <button onClick={() => { setEditItem(d); setShowForm(true) }}
-                            className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100">
-                            Editar
-                          </button>
-                          <button onClick={() => setConfirmDelete(d)}
-                            className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
-                            <Trash2 size={13} />
-                          </button>
+                          {puedeEscribir && (
+                            <button onClick={() => { setEditItem(d); setShowForm(true) }}
+                              className="p-1.5 rounded-lg text-gray-300 hover:text-blue-500 hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100">
+                              Editar
+                            </button>
+                          )}
+                          {puedeEscribir && (
+                            <button onClick={() => setConfirmDelete(d)}
+                              className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -312,11 +320,13 @@ export default function Deudas() {
                         <Clock size={22} style={{ color: '#0F6E56' }} />
                       </div>
                       <p className="text-gray-400 text-[13.5px]">No hay deudas registradas</p>
-                      <button onClick={() => { setEditItem(null); setShowForm(true) }}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13px] font-medium shadow-sm mt-4 mx-auto"
-                        style={{ background: '#0F6E56' }}>
-                        <Plus size={15} /> Registrar primera deuda
-                      </button>
+                      {puedeEscribir && (
+                        <button onClick={() => { setEditItem(null); setShowForm(true) }}
+                          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13px] font-medium shadow-sm mt-4 mx-auto"
+                          style={{ background: '#0F6E56' }}>
+                          <Plus size={15} /> Registrar primera deuda
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}

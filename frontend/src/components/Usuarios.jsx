@@ -46,7 +46,7 @@ export default function Usuarios() {
   const [loading, setLoading]   = useState(true)
   const [openMenu, setOpenMenu] = useState(null)
   const [modal, setModal]       = useState(null)
-  const [form, setForm]         = useState({ email: '', nombre: '', rol_id: '', estado: 'Activo' })
+  const [form, setForm]         = useState({ email: '', nombre: '', rol_id: '', estado: 'Activo', password: '' })
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState(null)
 
@@ -61,14 +61,17 @@ export default function Usuarios() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  const rolesPermitidos = roles.filter(r => ['admin', 'usuario', 'lector'].includes(r.nombre))
+
   const abrirNuevo = () => {
-    setForm({ email: '', nombre: '', rol_id: roles[0]?.id || '', estado: 'Activo' })
+    const defaultRol = rolesPermitidos.find(r => r.nombre === 'usuario') || rolesPermitidos[0]
+    setForm({ email: '', nombre: '', rol_id: defaultRol?.id || '', estado: 'Activo', password: '' })
     setError(null)
     setModal('nuevo')
   }
 
   const abrirEditar = (u) => {
-    setForm({ email: u.email, nombre: u.nombre, rol_id: u.rol_id, estado: u.estado })
+    setForm({ email: u.email, nombre: u.nombre, rol_id: u.rol_id, estado: u.estado, password: '' })
     setError(null)
     setModal(u)
     setOpenMenu(null)
@@ -224,12 +227,26 @@ export default function Usuarios() {
                     required className={inputCls} style={inputStyle} />
                 </div>
                 <div>
+                  <label className="form-label">
+                    Contraseña {modal === 'nuevo' ? '*' : '(dejar vacío para no cambiar)'}
+                  </label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={e => set('password')(e.target.value)}
+                    required={modal === 'nuevo'}
+                    placeholder={modal === 'nuevo' ? '' : '••••••••'}
+                    className={inputCls}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
                   <label className="form-label">Rol *</label>
                   <div className="relative">
                     <select value={form.rol_id} onChange={e => set('rol_id')(e.target.value)}
                       required className={inputCls + ' appearance-none pr-8'} style={inputStyle}>
                       <option value="">Seleccionar rol</option>
-                      {roles.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                      {rolesPermitidos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                     </select>
                     <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                   </div>

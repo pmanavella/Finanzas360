@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Filter, Trash2, RefreshCw, ChevronDown } from 'lucide-react'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 import FormMovimiento from './FormMovimiento'
 
 const CATEGORIAS = ['Todos', 'Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
@@ -121,6 +122,7 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
 
   const isIngreso = tipo === 'Ingreso'
   const accentColor = isIngreso ? '#2e8b57' : '#ef4444'
+  const puedeEscribir = canWrite()
 
   return (
     <div className="animate-fadeIn space-y-5">
@@ -134,9 +136,11 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
             <span className="font-bold" style={{ color: accentColor }}>{fmt(totales.suma)}</span>
           </p>
         </div>
-        <button onClick={() => { setEditItem(null); setShowForm(true) }} className="btn-primary">
-          <Plus size={15} /> Nuevo {tipo}
-        </button>
+        {puedeEscribir && (
+          <button onClick={() => { setEditItem(null); setShowForm(true) }} className="btn-primary">
+            <Plus size={15} /> Nuevo {tipo}
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -244,7 +248,7 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
                       {fmt(m.monto)}
                     </td>
                     <td className="table-cell">
-                      {!m._isSalario && (
+                      {!m._isSalario && puedeEscribir && (
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                           <button
                             onClick={() => { setEditItem(m); setShowForm(true) }}
@@ -272,12 +276,14 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
                         <Plus size={22} style={{ color: '#0f5132' }} />
                       </div>
                       <p className="text-gray-400 text-sm mb-4">No hay {tipo.toLowerCase()}s registrados</p>
-                      <button
-                        onClick={() => { setEditItem(null); setShowForm(true) }}
-                        className="btn-primary mx-auto"
-                      >
-                        <Plus size={15} /> Crear primer {tipo.toLowerCase()}
-                      </button>
+                      {puedeEscribir && (
+                        <button
+                          onClick={() => { setEditItem(null); setShowForm(true) }}
+                          className="btn-primary mx-auto"
+                        >
+                          <Plus size={15} /> Crear primer {tipo.toLowerCase()}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 )}

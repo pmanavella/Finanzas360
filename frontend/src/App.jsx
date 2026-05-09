@@ -11,6 +11,7 @@ import Deudas from './components/Deudas'
 import Salarios from './components/Salarios'
 import Usuarios from './components/Usuarios'
 import TodosMovimientos from './components/TodosMovimientos'
+import { canAccessAdmin } from './lib/permissions'
 
 function getUserFromStorage() {
   try { return JSON.parse(localStorage.getItem('user')) } catch { return null }
@@ -22,6 +23,7 @@ function FinancialApp() {
   const user = getUserFromStorage()
 
   const navigate = (p, extra) => {
+    if (p === 'usuarios' && !canAccessAdmin()) return
     setPage(p)
     if (extra) setOpenForm(extra)
     else setOpenForm(null)
@@ -37,7 +39,7 @@ function FinancialApp() {
         <Movimientos tipo="Gasto" openForm={openForm} onFormClose={() => setOpenForm(null)} />
       )}
       {page === 'deudas'       && <Deudas />}
-      {page === 'salarios'     && <Salarios user={user} />}
+      {page === 'salarios'     && <Salarios />}
       {page === 'comprobantes' && <Comprobantes />}
       {page === 'excel'        && <ImportarExcel />}
       {page === 'todos'        && <TodosMovimientos />}

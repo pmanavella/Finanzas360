@@ -3,7 +3,7 @@ const comprobantesService = require('../services/comprobantesService');
 async function upload(req, res) {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
-    const result = await comprobantesService.upload(req.file, req.body.movimiento_id);
+    const result = await comprobantesService.upload(req.file, req.body.movimiento_id, req.user?.email);
     res.status(201).json(result);
   } catch (err) {
     console.error('Upload error:', err);

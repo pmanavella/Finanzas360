@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
+import { canWrite } from '../lib/permissions'
 import {
-  Users, DollarSign, Tag, Plus, Trash2, X, ChevronDown, Lock,
+  Users, DollarSign, Tag, Plus, Trash2, X, ChevronDown,
 } from 'lucide-react'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -45,27 +46,6 @@ const inputStyle = { borderColor: 'rgba(15,110,86,0.25)' }
 
 function Label({ children }) {
   return <label className="text-[11.5px] font-medium text-gray-500 mb-1.5 block">{children}</label>
-}
-
-// ── Access denied overlay ─────────────────────────────────────────────────────
-
-function AccesoDenegado() {
-  return (
-    <div className="flex flex-col items-center justify-center h-72 gap-4">
-      <div
-        className="w-16 h-16 rounded-2xl flex items-center justify-center"
-        style={{ background: '#FEE2E2' }}
-      >
-        <Lock size={28} color="#991B1B" />
-      </div>
-      <div className="text-center">
-        <p className="font-serif font-semibold text-[18px] text-gray-800">Sin permisos</p>
-        <p className="text-[13px] text-gray-400 mt-1">
-          No tenés permisos para acceder al módulo de Salarios.
-        </p>
-      </div>
-    </div>
-  )
 }
 
 // ── Modal base (con createPortal → se renderiza en document.body) ─────────────
@@ -121,6 +101,7 @@ const EMP_VACIO = {
 }
 
 function TabEmpleados() {
+  const puedeEscribir = canWrite()
   const [empleados, setEmpleados] = useState([])
   const [loading, setLoading]     = useState(true)
   const [modal, setModal]         = useState(null)
@@ -176,13 +157,15 @@ function TabEmpleados() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-[13px] text-gray-500">{empleados.length} empleados registrados</p>
-        <button
-          onClick={abrirNuevo}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
-          style={{ background: '#0F6E56' }}
-        >
-          <Plus size={14} /> Nuevo empleado
-        </button>
+        {puedeEscribir && (
+          <button
+            onClick={abrirNuevo}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
+            style={{ background: '#0F6E56' }}
+          >
+            <Plus size={14} /> Nuevo empleado
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
@@ -210,20 +193,22 @@ function TabEmpleados() {
                   <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{emp.fecha_ingreso || '—'}</td>
                   <td className="py-3 px-4"><Badge label={emp.estado} /></td>
                   <td className="py-3 px-4">
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => abrirEditar(emp)}
-                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(emp.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    {puedeEscribir && (
+                      <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => abrirEditar(emp)}
+                          className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => eliminar(emp.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -314,6 +299,7 @@ function TabEmpleados() {
 const MOV_VACIO = { empleado_id: '', categoria_id: '', monto: '', fecha: '', descripcion: '', cantidad: '' }
 
 function TabMovimientos() {
+  const puedeEscribir = canWrite()
   const [movs, setMovs]           = useState([])
   const [empleados, setEmpleados] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -433,13 +419,15 @@ function TabMovimientos() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-[13px] text-gray-500">{movs.length} movimientos registrados</p>
-        <button
-          onClick={abrirNuevo}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
-          style={{ background: '#0F6E56' }}
-        >
-          <Plus size={14} /> Registrar movimiento
-        </button>
+        {puedeEscribir && (
+          <button
+            onClick={abrirNuevo}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
+            style={{ background: '#0F6E56' }}
+          >
+            <Plus size={14} /> Registrar movimiento
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
@@ -471,20 +459,22 @@ function TabMovimientos() {
                   <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{m.fecha}</td>
                   <td className="py-3 px-4 text-gray-500 max-w-[200px] truncate">{m.descripcion || '—'}</td>
                   <td className="py-3 px-4">
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => abrirEditar(m)}
-                        className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => eliminar(m.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    {puedeEscribir && (
+                      <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => abrirEditar(m)}
+                          className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => eliminar(m.id)}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -599,6 +589,7 @@ function TabMovimientos() {
 // ── TAB: Categorías ───────────────────────────────────────────────────────────
 
 function TabCategorias() {
+  const puedeEscribir = canWrite()
   const [cats, setCats]       = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal]     = useState(false)
@@ -640,13 +631,15 @@ function TabCategorias() {
     <>
       <div className="flex items-center justify-between mb-4">
         <p className="text-[13px] text-gray-500">{cats.length} categorías registradas</p>
-        <button
-          onClick={() => { setForm({ nombre: '', descripcion: '' }); setError(null); setModal(true) }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
-          style={{ background: '#0F6E56' }}
-        >
-          <Plus size={14} /> Nueva categoría
-        </button>
+        {puedeEscribir && (
+          <button
+            onClick={() => { setForm({ nombre: '', descripcion: '' }); setError(null); setModal(true) }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[13px] font-medium shadow-sm"
+            style={{ background: '#0F6E56' }}
+          >
+            <Plus size={14} /> Nueva categoría
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
@@ -668,14 +661,16 @@ function TabCategorias() {
                 <td className="py-3 px-4 font-medium text-gray-900 whitespace-nowrap">{c.nombre}</td>
                 <td className="py-3 px-4 text-gray-500">{c.descripcion || '—'}</td>
                 <td className="py-3 px-4">
-                  <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => eliminar(c.id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
+                  {puedeEscribir && (
+                    <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => eliminar(c.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -724,10 +719,8 @@ const SUBTABS = [
   { id: 'categorias',  label: 'Categorías',  icon: Tag        },
 ]
 
-export default function Salarios({ user }) {
+export default function Salarios() {
   const [tab, setTab] = useState('empleados')
-
-  if (user?.rol !== 'admin') return <AccesoDenegado />
 
   return (
     <div className="fade-in space-y-4">

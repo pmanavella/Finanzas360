@@ -1,10 +1,11 @@
+const bcrypt = require('bcrypt');
 const supabase = require('../config/supabaseClient');
 
 class RbacService {
   async listarUsuarios() {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*, roles (id, nombre)')
+      .select('id, email, nombre, rol_id, estado, created_at, roles (id, nombre)')
       .order('nombre', { ascending: true });
     if (error) throw error;
     return { data, total: data.length };
@@ -13,7 +14,7 @@ class RbacService {
   async obtenerUsuarioPorId(id) {
     const { data, error } = await supabase
       .from('usuarios')
-      .select('*, roles (id, nombre)')
+      .select('id, email, nombre, rol_id, estado, created_at, roles (id, nombre)')
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -22,25 +23,37 @@ class RbacService {
   }
 
   async crearUsuario(body) {
-    const { email, nombre, rol_id, estado } = body;
-    if (!email || !nombre || !rol_id)
-      throw Object.assign(new Error('Faltan campos obligatorios: email, nombre, rol_id'), { status: 400 });
+    const { email, nombre, rol_id, estado, password } = body;
+    if (!email || !nombre || !rol_id || !password)
+      throw Object.assign(
+        new Error('Faltan campos obligatorios: email, nombre, rol_id, password'),
+        { status: 400 }
+      );
+
+    const hashed_password = await bcrypt.hash(password, 10);
+
     const { data, error } = await supabase
       .from('usuarios')
-      .insert([{ email, nombre, rol_id, estado: estado || 'Activo' }])
-      .select('*, roles (id, nombre)')
+      .insert([{ email, nombre, rol_id, estado: estado || 'Activo', hashed_password }])
+      .select('id, email, nombre, rol_id, estado, created_at, roles (id, nombre)')
       .single();
     if (error) throw error;
     return data;
   }
 
   async actualizarUsuario(id, body) {
-    const { email, nombre, rol_id, estado } = body;
+    const { email, nombre, rol_id, estado, password } = body;
+
+    const updates = { email, nombre, rol_id, estado };
+    if (password) {
+      updates.hashed_password = await bcrypt.hash(password, 10);
+    }
+
     const { data, error } = await supabase
       .from('usuarios')
-      .update({ email, nombre, rol_id, estado })
+      .update(updates)
       .eq('id', id)
-      .select('*, roles (id, nombre)')
+      .select('id, email, nombre, rol_id, estado, created_at, roles (id, nombre)')
       .single();
     if (error) throw error;
     return data;

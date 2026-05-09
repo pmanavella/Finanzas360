@@ -22,11 +22,17 @@ async function login(email, password) {
     throw Object.assign(new Error('Credenciales inválidas'), { status: 401 });
   }
 
-  console.log(`[AUTH] Usuario encontrado — id: ${user.id}, rol: ${user.rol}, is_active: ${user.is_active}`);
+  const rol = user.roles?.nombre || null;
+  console.log(`[AUTH] Usuario encontrado — id: ${user.id}, rol: ${rol}, estado: ${user.estado}`);
 
-  if (!user.is_active) {
+  if (user.estado !== 'Activo') {
     console.warn(`[AUTH] Usuario inactivo — email: ${email}`);
     throw Object.assign(new Error('Usuario inactivo'), { status: 403 });
+  }
+
+  if (!user.hashed_password) {
+    console.warn(`[AUTH] Usuario sin contraseña configurada — email: ${email}`);
+    throw Object.assign(new Error('Credenciales inválidas'), { status: 401 });
   }
 
   const passwordMatch = await bcrypt.compare(password, user.hashed_password);
@@ -38,23 +44,23 @@ async function login(email, password) {
   }
 
   const payload = {
-    id: user.id,
-    email: user.email,
+    id:     user.id,
+    email:  user.email,
     nombre: user.nombre,
-    rol: user.rol
+    rol,
   };
 
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
-  console.log(`[AUTH] JWT generado correctamente — email: ${email}, rol: ${user.rol}`);
+  console.log(`[AUTH] JWT generado correctamente — email: ${email}, rol: ${rol}`);
 
   return {
     token,
     user: {
-      id: user.id,
-      email: user.email,
+      id:     user.id,
+      email:  user.email,
       nombre: user.nombre,
-      rol: user.rol
-    }
+      rol,
+    },
   };
 }
 

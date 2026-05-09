@@ -23,7 +23,7 @@ class SalariosService {
     return data;
   }
 
-  async crearEmpleado(body) {
+  async crearEmpleado(body, createdBy) {
     const { nombre, apellido, email, telefono, tipo_permanencia, fecha_ingreso, estado, tipo_salario, monto_base } = body;
     if (!nombre || !apellido || !tipo_permanencia)
       throw Object.assign(new Error('Faltan campos obligatorios: nombre, apellido, tipo_permanencia'), { status: 400 });
@@ -42,6 +42,7 @@ class SalariosService {
         estado: estado || 'Activo',
         tipo_salario: tipoSalarioFinal,
         monto_base: monto_base ? Number(monto_base) : 0,
+        created_by: createdBy || null,
       }])
       .select()
       .single();
@@ -80,12 +81,12 @@ class SalariosService {
     return { data, total: data.length };
   }
 
-  async crearCategoria(body) {
+  async crearCategoria(body, createdBy) {
     const { nombre, descripcion } = body;
     if (!nombre)
       throw Object.assign(new Error('El campo nombre es obligatorio'), { status: 400 });
     const { data, error } = await supabase
-      .from('categorias_salariales').insert([{ nombre, descripcion }]).select().single();
+      .from('categorias_salariales').insert([{ nombre, descripcion, created_by: createdBy || null }]).select().single();
     if (error) throw error;
     return data;
   }
@@ -112,7 +113,7 @@ class SalariosService {
     return { data, total: data.length };
   }
 
-  async crearMovimiento(body) {
+  async crearMovimiento(body, createdBy) {
     const { empleado_id, categoria_id, monto, fecha, descripcion, cantidad } = body;
     if (!empleado_id || !categoria_id || !fecha)
       throw Object.assign(new Error('Faltan campos obligatorios: empleado_id, categoria_id, fecha'), { status: 400 });
@@ -131,7 +132,7 @@ class SalariosService {
 
     const { data, error } = await supabase
       .from('movimientos_salario')
-      .insert([{ empleado_id, categoria_id, monto: montoFinal, fecha, descripcion }])
+      .insert([{ empleado_id, categoria_id, monto: montoFinal, fecha, descripcion, created_by: createdBy || null }])
       .select(`*, empleados (id, nombre, apellido), categorias_salariales (id, nombre)`)
       .single();
     if (error) throw error;
