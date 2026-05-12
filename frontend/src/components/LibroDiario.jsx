@@ -292,6 +292,7 @@ export default function LibroDiario({ onClose }) {
   const [items,      setItems]      = useState([])
   const [fuentes,    setFuentes]    = useState({})
   const [loading,    setLoading]    = useState(false)
+  const [loadError,  setLoadError]  = useState(null)
   const [generating, setGenerating] = useState(false)
 
   // Bloquear scroll del body mientras el modal esté abierto
@@ -301,8 +302,23 @@ export default function LibroDiario({ onClose }) {
     return () => { document.body.style.overflow = prev }
   }, [])
 
+  function sanitizeMovimiento(m) {
+    const monto = Number(m.monto)
+    if (!m.id || !m.fecha || isNaN(monto) || monto <= 0) return null
+    return {
+      id:          m.id,
+      fecha:       m.fecha,
+      descripcion: m.descripcion || '(sin descripción)',
+      tipo:        m.tipo,
+      categoria:   m.categoria || 'Otros',
+      monto,
+      detalle:     m.categoria || '',
+    }
+  }
+
   async function cargarMovimientos() {
     setLoading(true)
+    setLoadError(null)
     const firstDay = `${anio}-${String(mes).padStart(2, '0')}-01`
     const lastDay  = `${anio}-${String(mes).padStart(2, '0')}-${String(new Date(anio, mes, 0).getDate()).padStart(2, '0')}`
 
@@ -312,35 +328,56 @@ export default function LibroDiario({ onClose }) {
         api.getMovimientosSalario({ fecha_desde: firstDay, fecha_hasta: lastDay }),
       ])
 
-      const movs = movRes.status === 'fulfilled'
-        ? (movRes.value.data || []).map(m => ({
-            id:          m.id,
-            fecha:       m.fecha,
-            descripcion: m.descripcion,
-            tipo:        m.tipo,
-            categoria:   m.categoria,
-            monto:       Number(m.monto),
-            detalle:     m.categoria || '',
-          }))
-        : []
+      const ambosRechazados = movRes.status === 'rejected' && salRes.status === 'rejected'
+      if (ambosRechazados) {
+        const msg = movRes.reason?.message || 'Error de conexión'
+        console.error('[LibroDiario] Ambas fuentes fallaron:', movRes.reason, salRes.reason)
+        setLoadError(`No se pudieron cargar los movimientos. ${msg}`)
+        setItems([])
+        return
+      }
 
-      const sals = salRes.status === 'fulfilled'
-        ? (salRes.value.data || []).map(s => {
-            const nombre = s.empleados
-              ? `${s.empleados.nombre} ${s.empleados.apellido}`
-              : '—'
-            const cat = s.categorias_salariales?.nombre || 'Sueldo Base'
-            return {
-              id:          s.id,
-              fecha:       s.fecha,
-              descripcion: cat ? `${nombre} — ${cat}` : nombre,
-              tipo:        'Salario',
-              categoria:   cat,
-              monto:       Number(s.monto),
-              detalle:     cat,
-            }
+      if (movRes.status === 'rejected') {
+        console.warn('[LibroDiario] Falló la carga de movimientos financieros:', movRes.reason)
+      }
+      if (salRes.status === 'rejected') {
+        console.warn('[LibroDiario] Falló la carga de salarios:', salRes.reason)
+      }
+
+      const rawMovs = movRes.status === 'fulfilled' ? (movRes.value?.data ?? []) : []
+      const rawSals = salRes.status === 'fulfilled' ? (salRes.value?.data ?? []) : []
+
+      const movs = rawMovs
+        .map(m => sanitizeMovimiento(m))
+        .filter(Boolean)
+
+      const sals = rawSals
+        .map(s => {
+          const nombre = s.empleados
+            ? `${s.empleados.nombre} ${s.empleados.apellido}`
+            : '—'
+          const cat = s.categorias_salariales?.nombre || 'Sueldo Base'
+          return sanitizeMovimiento({
+            id:          s.id,
+            fecha:       s.fecha,
+            descripcion: cat ? `${nombre} — ${cat}` : nombre,
+            tipo:        'Salario',
+            categoria:   cat,
+            monto:       s.monto,
           })
-        : []
+        })
+        .filter(Boolean)
+
+      const invalidos = rawMovs.length + rawSals.length - movs.length - sals.length
+      if (invalidos > 0) {
+        console.warn(`[LibroDiario] Se descartaron ${invalidos} movimiento(s) con datos inválidos`)
+      }
+
+      if (movRes.status === 'rejected' && sals.length > 0) {
+        setLoadError('No se pudieron cargar los movimientos financieros. Solo se muestran los salarios.')
+      } else if (salRes.status === 'rejected' && movs.length > 0) {
+        setLoadError('No se pudieron cargar los salarios. Solo se muestran los movimientos financieros.')
+      }
 
       const all = [...movs, ...sals].sort((a, b) => a.fecha.localeCompare(b.fecha))
       setItems(all)
@@ -348,6 +385,10 @@ export default function LibroDiario({ onClose }) {
       const initFuentes = {}
       all.forEach(i => { initFuentes[`${i.tipo}-${i.id}`] = 'Caja / Banco' })
       setFuentes(initFuentes)
+    } catch (err) {
+      console.error('[LibroDiario] Error inesperado al cargar movimientos:', err)
+      setLoadError('Ocurrió un error inesperado al cargar los movimientos. Intentá nuevamente.')
+      setItems([])
     } finally {
       setLoading(false)
     }
@@ -414,7 +455,10 @@ export default function LibroDiario({ onClose }) {
               Cancelar
             </button>
             <button
-              onClick={async () => { await cargarMovimientos(); setStep(2) }}
+              onClick={async () => {
+                await cargarMovimientos()
+                setStep(2)
+              }}
               disabled={loading}
               className="btn-primary flex-1 justify-center"
               style={{ opacity: loading ? 0.75 : 1 }}
@@ -465,16 +509,36 @@ export default function LibroDiario({ onClose }) {
 
         {/* Tabla con scroll */}
         <div className="flex-1 overflow-y-auto">
-          {loading ? (
+          {loadError && items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 gap-3 px-6">
+              <div className="w-full rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-[13px] text-red-700 flex items-start gap-2">
+                <span className="flex-shrink-0 mt-0.5">⚠</span>
+                <span>{loadError}</span>
+              </div>
+              <button
+                onClick={async () => { await cargarMovimientos() }}
+                className="btn-secondary text-sm"
+              >
+                <RefreshCw size={13} /> Reintentar
+              </button>
+            </div>
+          ) : loading ? (
             <div className="flex items-center justify-center h-40 text-gray-400 gap-2 text-sm">
               <RefreshCw size={15} className="animate-spin" />
               Cargando movimientos...
             </div>
-          ) : items.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
-              No hay movimientos para este período
-            </div>
           ) : (
+            <>
+              {loadError && (
+                <div className="mx-4 mt-3 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-[12px] text-amber-800 flex items-center gap-2">
+                  <span>⚠</span> {loadError}
+                </div>
+              )}
+              {items.length === 0 ? (
+                <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+                  No hay movimientos para este período
+                </div>
+              ) : (
             <table className="w-full text-xs">
               <thead className="sticky top-0 z-10" style={{ background: '#eef0ea' }}>
                 <tr>
@@ -546,6 +610,8 @@ export default function LibroDiario({ onClose }) {
                 })}
               </tbody>
             </table>
+          )}
+            </>
           )}
         </div>
 

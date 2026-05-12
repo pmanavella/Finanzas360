@@ -109,13 +109,13 @@ export default function Login() {
             <h2 className="text-[22px] font-bold text-gray-900 mb-1">Iniciar sesión</h2>
             <p className="text-[13px] text-gray-400 mb-7">Ingresá tus credenciales para continuar</p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div>
                 <label className="block text-[11px] font-bold uppercase tracking-widest text-gray-500 mb-1.5">
                   Email
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   autoComplete="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError('') }}
@@ -153,7 +153,7 @@ export default function Login() {
               {error && (
                 <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-[13px] text-red-600 flex items-start gap-2">
                   <span className="flex-shrink-0">⚠</span>
-                  {error}
+                  <span className="flex-1">{error}</span>
                 </div>
               )}
 

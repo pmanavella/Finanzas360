@@ -40,7 +40,15 @@ const inputStyle = { borderColor: 'rgba(15,110,86,0.25)' }
 
 const COLUMNS = ['Usuario', 'Email', 'Rol', 'Estado', '']
 
+function getCurrentUser() {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
 export default function Usuarios() {
+  const currentUser = getCurrentUser()
   const [usuarios, setUsuarios] = useState([])
   const [roles, setRoles]       = useState([])
   const [loading, setLoading]   = useState(true)
@@ -66,7 +74,7 @@ export default function Usuarios() {
   const abrirNuevo = () => {
     const defaultRol = rolesPermitidos.find(r => r.nombre === 'usuario') || rolesPermitidos[0]
     setForm({ email: '', nombre: '', rol_id: defaultRol?.id || '', estado: 'Activo', password: '' })
-    setError(null)
+    setError(null)    // limpiar banner global al abrir modal
     setModal('nuevo')
   }
 
@@ -95,17 +103,32 @@ export default function Usuarios() {
     }
   }
 
-  const eliminar = async (id) => {
+  const eliminar = async (u) => {
     setOpenMenu(null)
-    if (!confirm('¿Eliminar este usuario?')) return
-    try { await api.eliminarUsuario(id); cargar() }
-    catch (err) { alert(err.message) }
+    if (u.id === currentUser?.id) {
+      setError('No podés eliminar tu propia cuenta')
+      return
+    }
+    if (!confirm(`¿Eliminar al usuario "${u.nombre}"? Esta acción no se puede deshacer.`)) return
+    try {
+      await api.eliminarUsuario(u.id)
+      cargar()
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
 
   return (
     <div className="fade-in space-y-4">
+
+      {error && !modal && (
+        <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-[13px] text-red-600 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-2"><span>⚠</span> {error}</span>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 transition-colors flex-shrink-0">✕</button>
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         <div>
@@ -169,7 +192,7 @@ export default function Usuarios() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity relative">
+                      <div className={`flex justify-end transition-opacity relative ${openMenu === u.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                         <button onClick={() => setOpenMenu(openMenu === u.id ? null : u.id)}
                           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
                           <MoreVertical size={15} />
@@ -181,10 +204,12 @@ export default function Usuarios() {
                               className="w-full text-left px-4 py-2 text-[13px] text-gray-700 hover:bg-gray-50">
                               Editar
                             </button>
-                            <button onClick={() => eliminar(u.id)}
-                              className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50">
-                              Eliminar
-                            </button>
+                            {u.id !== currentUser?.id && (
+                              <button onClick={() => eliminar(u)}
+                                className="w-full text-left px-4 py-2 text-[13px] text-red-600 hover:bg-red-50">
+                                Eliminar
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>

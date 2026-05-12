@@ -12,18 +12,27 @@ class RbacController {
   }
 
   async crearUsuario(req, res, next) {
-    try { res.status(201).json(await rbacService.crearUsuario(req.body)) }
-    catch (err) { next(err) }
+    try {
+      res.status(201).json(
+        await rbacService.crearUsuario(req.body, req.user?.email)
+      )
+    } catch (err) { next(err) }
   }
 
   async actualizarUsuario(req, res, next) {
-    try { res.json(await rbacService.actualizarUsuario(req.params.id, req.body)) }
-    catch (err) { next(err) }
+    try {
+      res.json(
+        await rbacService.actualizarUsuario(req.params.id, req.body, req.user?.email)
+      )
+    } catch (err) { next(err) }
   }
 
   async eliminarUsuario(req, res, next) {
-    try { res.json(await rbacService.eliminarUsuario(req.params.id)) }
-    catch (err) { next(err) }
+    try {
+      res.json(
+        await rbacService.eliminarUsuario(req.params.id, req.user?.email, req.user?.id)
+      )
+    } catch (err) { next(err) }
   }
 
   async listarRoles(req, res, next) {
