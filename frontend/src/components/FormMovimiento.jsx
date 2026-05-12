@@ -5,6 +5,15 @@ import { api } from '../lib/api'
 
 const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+
+function validateFile(file) {
+  if (file.size > MAX_FILE_SIZE) return 'El archivo excede el tamaño máximo permitido (10 MB)'
+  if (!ALLOWED_TYPES.includes(file.type)) return 'Formato de archivo no permitido. Solo JPG, PNG o PDF.'
+  return null
+}
+
 const INICIAL = {
   fecha: new Date().toISOString().split('T')[0],
   descripcion: '',
@@ -24,6 +33,7 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(false)
   const [archivo, setArchivo] = useState(null)
   const [ocrData, setOcrData] = useState(null)
   const [uploadingOCR, setUploadingOCR] = useState(false)
@@ -33,9 +43,17 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
   const handleArchivo = async (e) => {
     const file = e.target.files[0]
     if (!file) return
+
+    const fileError = validateFile(file)
+    if (fileError) {
+      setError(fileError)
+      return
+    }
+
     setArchivo(file)
     setUploadingOCR(true)
     setOcrData(null)
+    setError(null)
     try {
       const fd = new FormData()
       fd.append('archivo', file)
@@ -45,6 +63,7 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
       if (res.ocr.monto && !form.monto) set('monto', String(res.ocr.monto))
       if (res.ocr.proveedor && !form.proveedor_cliente) set('proveedor_cliente', res.ocr.proveedor)
     } catch (err) {
+      setError('No se pudo procesar el comprobante. Completá los campos manualmente.')
       console.error('OCR error:', err)
     } finally {
       setUploadingOCR(false)
@@ -52,23 +71,39 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
   }
 
   const handleSubmit = async () => {
-    if (!form.fecha || !form.descripcion || !form.monto) {
-      setError('Completá los campos obligatorios: fecha, descripción y monto.')
+    if (loading || success) return
+
+    const fechaVal = form.fecha
+    const descripcionVal = form.descripcion?.trim()
+    const montoVal = parseFloat(form.monto)
+
+    if (!fechaVal) {
+      setError('La fecha es obligatoria.')
       return
     }
+    if (!descripcionVal) {
+      setError('La descripción no puede estar vacía.')
+      return
+    }
+    if (!form.monto || isNaN(montoVal) || montoVal <= 0) {
+      setError('El monto debe ser un número mayor a 0.')
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
       let saved
       if (movimiento) {
-        saved = await api.editarMovimiento(movimiento.id, form)
+        saved = await api.editarMovimiento(movimiento.id, { ...form, descripcion: descripcionVal })
       } else {
-        saved = await api.crearMovimiento(form)
+        saved = await api.crearMovimiento({ ...form, descripcion: descripcionVal })
         if (ocrData?.comprobanteId) {
           await api.vincularComprobante(ocrData.comprobanteId, saved.id)
         }
       }
-      onSaved(saved)
+      setSuccess(true)
+      setTimeout(() => onSaved(saved), 900)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -196,7 +231,13 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
             </p>
           )}
 
-          {error && (
+          {success && (
+            <div className="p-2.5 bg-green-50 border border-green-200 rounded-xl text-[13px] text-green-700 flex items-center gap-2">
+              <span>✓</span> Movimiento guardado correctamente
+            </div>
+          )}
+
+          {error && !success && (
             <div className="p-2.5 bg-red-50 rounded-xl text-[13px] text-red-600">{error}</div>
           )}
         </div>
@@ -207,11 +248,11 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
             style={{ borderColor: 'rgba(15,110,86,0.2)' }}>
             Cancelar
           </button>
-          <button onClick={handleSubmit} disabled={loading}
+          <button onClick={handleSubmit} disabled={loading || success}
             className="flex-1 py-2.5 rounded-xl text-white text-[13px] font-semibold shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
             style={{ background: '#0F6E56' }}>
             <Save size={15} />
-            {loading ? 'Guardando...' : movimiento ? 'Guardar cambios' : 'Crear registro'}
+            {loading ? 'Guardando...' : success ? 'Guardado ✓' : movimiento ? 'Guardar cambios' : 'Crear registro'}
           </button>
         </div>
       </div>

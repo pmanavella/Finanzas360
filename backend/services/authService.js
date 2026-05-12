@@ -2,6 +2,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/userRepository');
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 6;
+
 async function login(email, password) {
   console.log(`[AUTH] Intento de login — email: ${email}`);
 
@@ -10,7 +13,18 @@ async function login(email, password) {
     throw Object.assign(new Error('Email y contraseña son obligatorios'), { status: 400 });
   }
 
-  const { data: user, error } = await userRepository.findByEmail(email);
+  const emailTrimmed = email.trim();
+  if (!EMAIL_REGEX.test(emailTrimmed)) {
+    console.warn(`[AUTH] Formato de email inválido: ${email}`);
+    throw Object.assign(new Error('El formato del correo electrónico no es válido'), { status: 400 });
+  }
+
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    console.warn('[AUTH] Contraseña demasiado corta');
+    throw Object.assign(new Error(`La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`), { status: 400 });
+  }
+
+  const { data: user, error } = await userRepository.findByEmail(emailTrimmed);
 
   if (error) {
     console.error('[AUTH] Error de DB al buscar usuario:', error.message, error.details || '');

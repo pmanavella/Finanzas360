@@ -5,6 +5,15 @@ import { canWrite } from '../lib/permissions'
 
 const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
+
+function validateFile(file) {
+  if (file.size > MAX_FILE_SIZE) return 'El archivo excede el tamaño máximo permitido (10 MB)'
+  if (!ALLOWED_TYPES.includes(file.type)) return 'Formato de archivo no permitido. Solo JPG, PNG o PDF.'
+  return null
+}
+
 function fmt(n) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
 }
@@ -233,6 +242,7 @@ export default function Comprobantes() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState(null)
   const [selected, setSelected] = useState(null)
   const [registrando, setRegistrando] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -259,6 +269,15 @@ export default function Comprobantes() {
   const handleUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
+    setUploadError(null)
+
+    const fileError = validateFile(file)
+    if (fileError) {
+      setUploadError(fileError)
+      fileRef.current.value = ''
+      return
+    }
+
     setUploading(true)
     try {
       const fd = new FormData()
@@ -268,7 +287,7 @@ export default function Comprobantes() {
       setSelected(res.comprobante)
       setRegistrando(true)
     } catch (err) {
-      alert(err.message)
+      setUploadError(err.message)
     } finally {
       setUploading(false)
       fileRef.current.value = ''
@@ -282,7 +301,7 @@ export default function Comprobantes() {
       if (selected?.id === c.id) { setSelected(null); setRegistrando(false) }
       cargar()
     } catch (err) {
-      alert(err.message)
+      setUploadError(err.message)
     }
   }
 
@@ -302,12 +321,19 @@ export default function Comprobantes() {
           </p>
         </div>
         {puedeEscribir && (
-          <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
-            <Upload size={16} />
-            {uploading ? 'Procesando OCR...' : 'Subir comprobante'}
-            <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,application/pdf"
-              onChange={handleUpload} className="hidden" />
-          </label>
+          <div className="flex flex-col items-end gap-1">
+            <label className={`btn-primary cursor-pointer ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+              <Upload size={16} />
+              {uploading ? 'Procesando OCR...' : 'Subir comprobante'}
+              <input ref={fileRef} type="file" accept="image/jpeg,image/jpg,image/png,application/pdf"
+                onChange={handleUpload} className="hidden" />
+            </label>
+            {uploadError && (
+              <p className="text-xs text-red-600 flex items-center gap-1">
+                <span>⚠</span> {uploadError}
+              </p>
+            )}
+          </div>
         )}
       </div>
 

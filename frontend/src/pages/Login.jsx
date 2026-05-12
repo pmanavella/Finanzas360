@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { API_URL } from '../lib/supabase'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const MIN_PASSWORD_LENGTH = 6
+
+function validateLoginForm(email, password) {
+  if (!email.trim() || !EMAIL_REGEX.test(email.trim())) {
+    return 'Ingresá un correo electrónico válido'
+  }
+  if (!password || password.length < MIN_PASSWORD_LENGTH) {
+    return `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres`
+  }
+  return null
+}
+
 export default function Login() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -14,12 +27,19 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
+
+    const validationError = validateLoginForm(email, password)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -97,9 +117,8 @@ export default function Login() {
                 <input
                   type="email"
                   autoComplete="email"
-                  required
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={e => { setEmail(e.target.value); setError('') }}
                   placeholder="admin@finanzas360.com"
                   className={inputCls}
                   style={inputStyle}
@@ -114,9 +133,8 @@ export default function Login() {
                   <input
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    required
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => { setPassword(e.target.value); setError('') }}
                     placeholder="••••••••"
                     className={inputCls + ' pr-11'}
                     style={inputStyle}

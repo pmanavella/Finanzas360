@@ -23,15 +23,19 @@ async function create(body, createdBy) {
       { status: 400 }
     );
   }
+  if (!descripcion.trim()) {
+    throw Object.assign(new Error('La descripción no puede estar vacía'), { status: 400 });
+  }
   if (!['Ingreso', 'Gasto'].includes(tipo)) {
     throw Object.assign(new Error('Tipo debe ser Ingreso o Gasto'), { status: 400 });
   }
-  if (Number(monto) <= 0) {
-    throw Object.assign(new Error('El monto debe ser mayor a 0'), { status: 400 });
+  const montoNum = Number(monto);
+  if (isNaN(montoNum) || montoNum <= 0) {
+    throw Object.assign(new Error('El monto debe ser un número mayor a 0'), { status: 400 });
   }
 
   const { data, error } = await movimientosRepository.create({
-    fecha, descripcion, categoria, tipo, monto: Number(monto), proveedor_cliente, notas,
+    fecha, descripcion: descripcion.trim(), categoria, tipo, monto: montoNum, proveedor_cliente, notas,
     created_by: createdBy || null,
   });
   if (error) throw error;
@@ -40,8 +44,25 @@ async function create(body, createdBy) {
 
 async function update(id, body) {
   const { fecha, descripcion, categoria, tipo, monto, proveedor_cliente, notas } = body;
+
+  if (descripcion !== undefined && !String(descripcion).trim()) {
+    throw Object.assign(new Error('La descripción no puede estar vacía'), { status: 400 });
+  }
+  if (monto !== undefined) {
+    const montoNum = Number(monto);
+    if (isNaN(montoNum) || montoNum <= 0) {
+      throw Object.assign(new Error('El monto debe ser un número mayor a 0'), { status: 400 });
+    }
+  }
+
   const { data, error } = await movimientosRepository.update(id, {
-    fecha, descripcion, categoria, tipo, monto: Number(monto), proveedor_cliente, notas
+    fecha,
+    descripcion: descripcion !== undefined ? String(descripcion).trim() : undefined,
+    categoria,
+    tipo,
+    monto: monto !== undefined ? Number(monto) : undefined,
+    proveedor_cliente,
+    notas
   });
   if (error) throw error;
   return data;
