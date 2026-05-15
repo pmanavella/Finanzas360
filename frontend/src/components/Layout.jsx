@@ -2,7 +2,7 @@ import {
   LayoutDashboard, TrendingUp, TrendingDown,
   FileText, Upload, LogOut, Menu, X,
   CreditCard, Users, Wallet, ChevronDown,
-  LayoutGrid, ArrowUpDown, Settings, LayoutList
+  LayoutGrid, ArrowUpDown, Settings, LayoutList, ShieldCheck
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import LogoIcon from './LogoIcon'
@@ -31,6 +31,7 @@ const navItems = [
   { id: 'comprobantes', label: 'Comprobantes',   icon: FileText,        group: 'DOCUMENTOS'    },
   { id: 'excel',        label: 'Importar Excel', icon: Upload,          group: 'DOCUMENTOS'    },
   { id: 'usuarios',     label: 'Usuarios',       icon: Users,           group: 'ADMINISTRACIÓN'},
+  { id: 'respaldo',    label: 'Respaldo',       icon: ShieldCheck,     group: 'ADMINISTRACIÓN'},
 ]
 
 const GROUP_META = {

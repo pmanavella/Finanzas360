@@ -117,4 +117,8 @@ export const api = {
   editarUsuario:  (id, body) => request(`/api/rbac/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   eliminarUsuario:(id)       => request(`/api/rbac/usuarios/${id}`, { method: 'DELETE' }),
   getRoles:       ()         => request('/api/rbac/roles'),
+
+  // Backup
+  exportarBackup:  ()       => request('/api/backup/export'),
+  restaurarBackup: (backup) => request('/api/backup/restore', { method: 'POST', body: JSON.stringify(backup) }),
 }

@@ -69,16 +69,13 @@ export default function Login() {
         style={{ background: '#0a3b24' }}
       >
         {/* Logo centrado arriba */}
-        <div className="flex justify-center">
+        <div className="flex flex-col items-center gap-3">
           <img src="/logo-icon.png" alt="Finanzas360" className="w-52 h-52 object-contain" />
+          <p className="text-4xl font-bold tracking-tight" style={{ color: '#D9A441' }}>Finanzas360</p>
         </div>
 
         {/* Texto central */}
         <div>
-          <p className="text-3xl font-extrabold uppercase tracking-widest mb-5"
-            style={{ color: '#D9A441' }}>
-            BIENVENIDO.
-          </p>
           <p className="text-4xl font-bold text-white leading-tight tracking-tight">
             Gestioná tus<br />
             <span style={{ color: '#D9A441' }}>finanzas<br />empresariales</span><br />

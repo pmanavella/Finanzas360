@@ -10,6 +10,7 @@ import ImportarExcel from './components/ImportarExcel'
 import Deudas from './components/Deudas'
 import Salarios from './components/Salarios'
 import Usuarios from './components/Usuarios'
+import Respaldo from './pages/Respaldo'
 import TodosMovimientos from './components/TodosMovimientos'
 import { canAccessAdmin } from './lib/permissions'
 
@@ -44,6 +45,7 @@ function FinancialApp() {
       {page === 'excel'        && <ImportarExcel />}
       {page === 'todos'        && <TodosMovimientos />}
       {page === 'usuarios'     && <Usuarios />}
+      {page === 'respaldo'     && <Respaldo />}
     </Layout>
   )
 }

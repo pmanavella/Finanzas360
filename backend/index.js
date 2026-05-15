@@ -9,6 +9,7 @@ const authRoutes = require('./routes/authRoutes');
 const deudasRoutes = require('./routes/deudas');
 const salariosRoutes = require('./routes/salarios');
 const rbacRoutes = require('./routes/rbac');
+const backupRoutes = require('./routes/backup');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -27,6 +28,7 @@ app.use('/api/excel', excelRoutes);
 app.use('/api/deudas', deudasRoutes);
 app.use('/api/salarios', salariosRoutes);
 app.use('/api/rbac', rbacRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
