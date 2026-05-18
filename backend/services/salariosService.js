@@ -42,6 +42,11 @@ class SalariosService {
         estado: estado || 'Activo',
         tipo_salario: tipoSalarioFinal,
         monto_base: monto_base ? Number(monto_base) : 0,
+        moneda: body.moneda || 'ARS',
+        cotizacion_tipo:  body.cotizacion_tipo  || null,
+        cotizacion_valor: body.cotizacion_valor ? Number(body.cotizacion_valor) : null,
+        cotizacion_fecha: body.cotizacion_fecha || null,
+        cotizacion_fuente: body.cotizacion_fuente || null,
         created_by: createdBy || null,
       }])
       .select()
@@ -59,6 +64,11 @@ class SalariosService {
       tipo_permanencia, fecha_ingreso, estado,
       modalidad_trabajo: { mensual: 'Mensual', hora: 'Por Horas', turno: 'Por Turno' }[tipoSalarioFinal],
       tipo_salario: tipoSalarioFinal,
+      moneda: body.moneda || 'ARS',
+      cotizacion_tipo:   body.cotizacion_tipo   || null,
+      cotizacion_valor:  body.cotizacion_valor  ? Number(body.cotizacion_valor) : null,
+      cotizacion_fecha:  body.cotizacion_fecha  || null,
+      cotizacion_fuente: body.cotizacion_fuente || null,
     };
     if (monto_base !== undefined) updates.monto_base = Number(monto_base) || 0;
 
@@ -132,7 +142,17 @@ class SalariosService {
 
     const { data, error } = await supabase
       .from('movimientos_salario')
-      .insert([{ empleado_id, categoria_id, monto: montoFinal, fecha, descripcion, created_by: createdBy || null }])
+      .insert([{
+        empleado_id, categoria_id, monto: montoFinal, fecha, descripcion,
+        moneda_origen:     body.moneda_origen    || 'ARS',
+        monto_origen:      body.monto_origen     ? Number(body.monto_origen) : null,
+        cotizacion_usada:  body.cotizacion_usada ? Number(body.cotizacion_usada) : null,
+        cotizacion_tipo:   body.cotizacion_tipo  || null,
+        cotizacion_fecha:  body.cotizacion_fecha || null,
+        cotizacion_fuente: body.cotizacion_fuente || null,
+        monto_ars:         body.monto_ars        ? Number(body.monto_ars) : montoFinal,
+        created_by: createdBy || null,
+      }])
       .select(`*, empleados (id, nombre, apellido), categorias_salariales (id, nombre)`)
       .single();
     if (error) throw error;
@@ -158,7 +178,16 @@ class SalariosService {
 
     const { data, error } = await supabase
       .from('movimientos_salario')
-      .update({ empleado_id, categoria_id, monto: montoFinal, fecha, descripcion })
+      .update({
+        empleado_id, categoria_id, monto: montoFinal, fecha, descripcion,
+        moneda_origen:     body.moneda_origen    || 'ARS',
+        monto_origen:      body.monto_origen     ? Number(body.monto_origen) : null,
+        cotizacion_usada:  body.cotizacion_usada ? Number(body.cotizacion_usada) : null,
+        cotizacion_tipo:   body.cotizacion_tipo  || null,
+        cotizacion_fecha:  body.cotizacion_fecha || null,
+        cotizacion_fuente: body.cotizacion_fuente || null,
+        monto_ars:         body.monto_ars        ? Number(body.monto_ars) : montoFinal,
+      })
       .eq('id', id)
       .select(`*, empleados (id, nombre, apellido), categorias_salariales (id, nombre)`)
       .single();

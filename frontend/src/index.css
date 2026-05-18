@@ -317,3 +317,14 @@
     grid-column: span 1 / span 1;
   }
 }
+
+.no-number-arrows::-webkit-inner-spin-button,
+.no-number-arrows::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-number-arrows {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
+import { obtenerCotizacionDetalle } from '../lib/dolarService'
 import { canWrite } from '../lib/permissions'
 import {
   Users, DollarSign, Tag, Plus, Trash2, X, ChevronDown,
@@ -10,6 +11,9 @@ import {
 
 const fmt = (n) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(n)
+
+const fmtUSD = (n) =>
+  `USD ${Number(n).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 const TIPO_PERMANENCIA = ['Planta', 'Temporal']
 const ESTADO_EMP       = ['Activo', 'Inactivo']
@@ -39,6 +43,79 @@ function Badge({ label }) {
     </span>
   )
 }
+
+// ── Bloque de cotización del dólar ────────────────────────────────────────────
+
+function CotizacionBlock({ cotizacion, loading, cotizacionTipo, onSelect }) {
+  if (loading) {
+    return (
+      <div
+        className="rounded-xl p-3 text-[12.5px] text-gray-400 text-center"
+        style={{ border: '1px solid rgba(15,110,86,0.2)', background: '#f0fdf9' }}
+      >
+        Obteniendo cotización del día…
+      </div>
+    )
+  }
+  if (!cotizacion) {
+    return (
+      <div
+        className="rounded-xl p-3 text-[12.5px] text-red-600"
+        style={{ border: '1px solid #fca5a5', background: '#fff5f5' }}
+      >
+        No se pudo obtener la cotización. Verifique su conexión e intente nuevamente.
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-xl p-3" style={{ border: '1px solid rgba(15,110,86,0.2)', background: '#f0fdf9' }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[10.5px] font-bold text-gray-500 uppercase tracking-widest">
+          Cotización del día
+        </span>
+        <span className="text-[11px] text-gray-400">
+          {cotizacion.fecha} · {cotizacion.fuente}
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => onSelect('compra', cotizacion.valor_compra)}
+          className="rounded-xl p-2.5 text-left transition-all"
+          style={
+            cotizacionTipo === 'compra'
+              ? { background: 'white', border: '2px solid #0F6E56' }
+              : { background: 'rgba(255,255,255,0.6)', border: '2px solid transparent' }
+          }
+        >
+          <div className="text-[11px] text-gray-500 mb-0.5">Dólar compra</div>
+          <div className="text-[16px] font-bold text-gray-900">
+            $ {cotizacion.valor_compra.toLocaleString('es-AR')}
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelect('venta', cotizacion.valor_venta)}
+          className="rounded-xl p-2.5 text-left transition-all"
+          style={
+            cotizacionTipo === 'venta'
+              ? { background: '#0F6E56', border: '2px solid #0F6E56' }
+              : { background: 'rgba(255,255,255,0.6)', border: '2px solid transparent' }
+          }
+        >
+          <div className={`text-[11px] mb-0.5 ${cotizacionTipo === 'venta' ? 'text-teal-100' : 'text-gray-500'}`}>
+            Dólar venta
+          </div>
+          <div className={`text-[16px] font-bold ${cotizacionTipo === 'venta' ? 'text-white' : 'text-gray-900'}`}>
+            $ {cotizacion.valor_venta.toLocaleString('es-AR')}
+          </div>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputCls =
   'w-full border rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white transition-colors focus:ring-2 focus:ring-teal-700/10'
@@ -98,16 +175,20 @@ const EMP_VACIO = {
   tipo_permanencia: 'Planta', modalidad_trabajo: 'Mensual',
   fecha_ingreso: '', estado: 'Activo',
   tipo_salario: 'mensual', monto_base: '',
+  moneda: 'ARS',
+  cotizacion_tipo: '', cotizacion_valor: '', cotizacion_fecha: '', cotizacion_fuente: '',
 }
 
 function TabEmpleados() {
   const puedeEscribir = canWrite()
-  const [empleados, setEmpleados] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(null)
-  const [form, setForm]           = useState(EMP_VACIO)
-  const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState(null)
+  const [empleados, setEmpleados]       = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [modal, setModal]               = useState(null)
+  const [form, setForm]                 = useState(EMP_VACIO)
+  const [saving, setSaving]             = useState(false)
+  const [error, setError]               = useState(null)
+  const [cotizacion, setCotizacion]     = useState(null)
+  const [loadingCot, setLoadingCot]     = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -120,11 +201,60 @@ function TabEmpleados() {
 
   useEffect(() => { cargar() }, [cargar])
 
-  const abrirNuevo = () => { setForm(EMP_VACIO); setError(null); setModal('nuevo') }
-  const abrirEditar = (emp) => { setForm({ ...emp }); setError(null); setModal(emp) }
+  // Fetch cotizacion cuando el modal está abierto y moneda = USD
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!modal || form.moneda !== 'USD') return
+    if (cotizacion || loadingCot) return
+    setLoadingCot(true)
+    obtenerCotizacionDetalle()
+      .then(data => setCotizacion(data))
+      .catch(() => setCotizacion(null))
+      .finally(() => setLoadingCot(false))
+  }, [form.moneda, modal])
+
+  const abrirNuevo = () => {
+    setForm(EMP_VACIO)
+    setError(null)
+    setCotizacion(null)
+    setModal('nuevo')
+  }
+
+  const abrirEditar = (emp) => {
+    setForm({ ...EMP_VACIO, ...emp })
+    setError(null)
+    setCotizacion(null)
+    setModal(emp)
+  }
+
+  const handleMonedaChange = (val) => {
+    setForm(f => ({
+      ...f,
+      moneda: val,
+      cotizacion_tipo: '',
+      cotizacion_valor: '',
+      cotizacion_fecha: '',
+      cotizacion_fuente: '',
+    }))
+    setCotizacion(null)
+  }
+
+  const handleSelectCotizacion = (tipo, valor) => {
+    setForm(f => ({
+      ...f,
+      cotizacion_tipo:   tipo,
+      cotizacion_valor:  String(valor),
+      cotizacion_fecha:  cotizacion?.fecha  || '',
+      cotizacion_fuente: cotizacion?.fuente || '',
+    }))
+  }
 
   const guardar = async (e) => {
     e.preventDefault()
+    if (form.moneda === 'USD' && !form.cotizacion_tipo) {
+      setError('Debe seleccionar el tipo de cotización (compra o venta) para empleados en USD')
+      return
+    }
     setSaving(true); setError(null)
     try {
       if (modal === 'nuevo') {
@@ -152,6 +282,11 @@ function TabEmpleados() {
   }
 
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
+
+  const formatMonto = (emp) => {
+    if (!emp.monto_base) return '—'
+    return emp.moneda === 'USD' ? fmtUSD(emp.monto_base) : fmt(emp.monto_base)
+  }
 
   return (
     <>
@@ -189,7 +324,12 @@ function TabEmpleados() {
                   <td className="py-3 px-4 text-gray-500">{emp.email || '—'}</td>
                   <td className="py-3 px-4"><Badge label={emp.tipo_permanencia} /></td>
                   <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{TIPO_SALARIO_LABEL[emp.tipo_salario] || '—'}</td>
-                  <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{emp.monto_base ? fmt(emp.monto_base) : '—'}</td>
+                  <td className="py-3 px-4 text-gray-500 whitespace-nowrap">
+                    {formatMonto(emp)}
+                    {emp.moneda === 'USD' && emp.cotizacion_tipo && (
+                      <span className="ml-1.5 text-[10.5px] text-teal-600">({emp.cotizacion_tipo})</span>
+                    )}
+                  </td>
                   <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{emp.fecha_ingreso || '—'}</td>
                   <td className="py-3 px-4"><Badge label={emp.estado} /></td>
                   <td className="py-3 px-4">
@@ -242,9 +382,7 @@ function TabEmpleados() {
               <input value={form.telefono || ''} onChange={e => set('telefono')(e.target.value)}
                 className={inputCls} style={inputStyle} />
             </div>
-            <div>
-              <SelectField label="Tipo permanencia *" value={form.tipo_permanencia} onChange={set('tipo_permanencia')} options={TIPO_PERMANENCIA} />
-            </div>
+            <SelectField label="Tipo permanencia *" value={form.tipo_permanencia} onChange={set('tipo_permanencia')} options={TIPO_PERMANENCIA} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Tipo de salario *</Label>
@@ -259,13 +397,37 @@ function TabEmpleados() {
                 </div>
               </div>
               <div>
-                <Label>{MONTO_BASE_LABEL[form.tipo_salario] || 'Monto base'}</Label>
-                <input type="number" step="0.01" min="0"
-                  value={form.monto_base || ''}
-                  onChange={e => set('monto_base')(e.target.value)}
-                  className={inputCls} style={inputStyle} placeholder="0.00" />
+                <Label>Moneda *</Label>
+                <div className="relative">
+                  <select value={form.moneda} onChange={e => handleMonedaChange(e.target.value)}
+                    className={inputCls + ' appearance-none pr-8'} style={inputStyle}>
+                    <option value="ARS">ARS — Peso Argentino</option>
+                    <option value="USD">USD — Dólar</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                </div>
               </div>
             </div>
+            <div>
+              <Label>
+                {MONTO_BASE_LABEL[form.tipo_salario] || 'Monto base'}
+                {' '}{form.moneda === 'USD' ? '(USD)' : '(ARS)'} *
+              </Label>
+              <input
+                type="number" step="0.01" min="0"
+                value={form.monto_base || ''}
+                onChange={e => set('monto_base')(e.target.value)}
+                className={inputCls} style={inputStyle} placeholder="0.00"
+              />
+            </div>
+            {form.moneda === 'USD' && (
+              <CotizacionBlock
+                cotizacion={cotizacion}
+                loading={loadingCot}
+                cotizacionTipo={form.cotizacion_tipo}
+                onSelect={handleSelectCotizacion}
+              />
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Fecha ingreso</Label>
@@ -296,19 +458,25 @@ function TabEmpleados() {
 
 // ── TAB: Movimientos salariales ───────────────────────────────────────────────
 
-const MOV_VACIO = { empleado_id: '', categoria_id: '', monto: '', fecha: '', descripcion: '', cantidad: '' }
+const MOV_VACIO = {
+  empleado_id: '', categoria_id: '', monto: '', fecha: '', descripcion: '', cantidad: '',
+  moneda_origen: 'ARS', monto_origen: '', cotizacion_usada: '',
+  cotizacion_tipo: '', cotizacion_fecha: '', cotizacion_fuente: '', monto_ars: '',
+}
 
 function TabMovimientos() {
   const puedeEscribir = canWrite()
-  const [movs, setMovs]           = useState([])
-  const [empleados, setEmpleados] = useState([])
-  const [categorias, setCategorias] = useState([])
-  const [loading, setLoading]     = useState(true)
-  const [modal, setModal]         = useState(false)
-  const [form, setForm]           = useState(MOV_VACIO)
-  const [empInfo, setEmpInfo]     = useState(null)
-  const [saving, setSaving]       = useState(false)
-  const [error, setError]         = useState(null)
+  const [movs, setMovs]                     = useState([])
+  const [empleados, setEmpleados]           = useState([])
+  const [categorias, setCategorias]         = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [modal, setModal]                   = useState(false)
+  const [form, setForm]                     = useState(MOV_VACIO)
+  const [empInfo, setEmpInfo]               = useState(null)
+  const [saving, setSaving]                 = useState(false)
+  const [error, setError]                   = useState(null)
+  const [movCotizacion, setMovCotizacion]   = useState(null)
+  const [movLoadingCot, setMovLoadingCot]   = useState(false)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -329,23 +497,81 @@ function TabMovimientos() {
   const cargarInfoEmpleado = (empleado_id, lista) => {
     const emp = lista.find(e => String(e.id) === String(empleado_id))
     if (emp && emp.tipo_salario) {
-      setEmpInfo({ tipo_salario: emp.tipo_salario, monto_base: Number(emp.monto_base) || 0 })
+      const isUSD     = emp.moneda === 'USD'
+      const cotizVal  = isUSD && emp.cotizacion_valor ? Number(emp.cotizacion_valor) : null
+      const montoBase = Number(emp.monto_base) || 0
+      const montoARS  = isUSD && cotizVal ? montoBase * cotizVal : montoBase
+
+      setEmpInfo({
+        tipo_salario:      emp.tipo_salario,
+        monto_base:        montoBase,
+        moneda:            emp.moneda || 'ARS',
+        cotizacion_valor:  cotizVal,
+        cotizacion_tipo:   emp.cotizacion_tipo  || null,
+        cotizacion_fecha:  emp.cotizacion_fecha || null,
+        cotizacion_fuente: emp.cotizacion_fuente || null,
+      })
+
+      const shouldAutoFill = emp.tipo_salario === 'mensual'
       setForm(f => ({
         ...f,
         empleado_id,
-        monto: emp.tipo_salario === 'mensual' ? String(emp.monto_base || '') : '',
-        cantidad: '',
+        monto:             shouldAutoFill ? String(Math.round(montoARS)) : '',
+        cantidad:          '',
+        moneda_origen:     emp.moneda || 'ARS',
+        monto_origen:      isUSD ? String(montoBase) : '',
+        cotizacion_usada:  cotizVal ? String(cotizVal) : '',
+        cotizacion_tipo:   emp.cotizacion_tipo  || '',
+        cotizacion_fecha:  emp.cotizacion_fecha || '',
+        cotizacion_fuente: emp.cotizacion_fuente || '',
+        monto_ars:         shouldAutoFill ? String(Math.round(montoARS)) : '',
       }))
+
+      // Si es USD sin cotización guardada, buscar cotización actual
+      if (isUSD && !cotizVal && !movLoadingCot) {
+        setMovLoadingCot(true)
+        obtenerCotizacionDetalle()
+          .then(setMovCotizacion)
+          .catch(() => setMovCotizacion(null))
+          .finally(() => setMovLoadingCot(false))
+      }
     } else {
       setEmpInfo(null)
-      setForm(f => ({ ...f, empleado_id, monto: '', cantidad: '' }))
+      setForm(f => ({
+        ...f, empleado_id, monto: '', cantidad: '',
+        moneda_origen: 'ARS', monto_origen: '', cotizacion_usada: '',
+        cotizacion_tipo: '', cotizacion_fecha: '', cotizacion_fuente: '', monto_ars: '',
+      }))
     }
+  }
+
+  const onSelectMovCotizacion = (tipo, valor) => {
+    if (!empInfo) return
+    const montoARS = empInfo.tipo_salario === 'mensual'
+      ? Math.round(empInfo.monto_base * valor)
+      : 0
+    setForm(f => ({
+      ...f,
+      cotizacion_tipo:   tipo,
+      cotizacion_usada:  String(valor),
+      cotizacion_fecha:  movCotizacion?.fecha  || '',
+      cotizacion_fuente: movCotizacion?.fuente || '',
+      monto:    empInfo.tipo_salario === 'mensual' ? String(montoARS) : f.monto,
+      monto_ars: empInfo.tipo_salario === 'mensual' ? String(montoARS) : f.monto_ars,
+    }))
   }
 
   const onCantidadChange = (val) => {
     setForm(f => {
-      const monto = empInfo ? String(empInfo.monto_base * Number(val)) : f.monto
-      return { ...f, cantidad: val, monto }
+      if (!empInfo) return { ...f, cantidad: val }
+      const cant = Number(val)
+      if (empInfo.moneda === 'USD') {
+        const montoUSD = empInfo.monto_base * cant
+        const cotizVal = Number(f.cotizacion_usada) || empInfo.cotizacion_valor || 0
+        const montoARS = cotizVal ? Math.round(montoUSD * cotizVal) : 0
+        return { ...f, cantidad: val, monto_origen: String(montoUSD), monto: String(montoARS), monto_ars: String(montoARS) }
+      }
+      return { ...f, cantidad: val, monto: String(empInfo.monto_base * cant) }
     })
   }
 
@@ -354,6 +580,8 @@ function TabMovimientos() {
     const primerEmp = empleados[0]
     setForm({ ...MOV_VACIO, fecha: hoy, categoria_id: categorias[0]?.id || '' })
     setEmpInfo(null)
+    setMovCotizacion(null)
+    setMovLoadingCot(false)
     setError(null)
     setModal('nuevo')
     if (primerEmp) cargarInfoEmpleado(primerEmp.id, empleados)
@@ -361,35 +589,71 @@ function TabMovimientos() {
 
   const abrirEditar = (mov) => {
     setForm({
-      empleado_id:  mov.empleado_id,
-      categoria_id: mov.categoria_id,
-      monto:        String(mov.monto),
-      fecha:        mov.fecha,
-      descripcion:  mov.descripcion || '',
-      cantidad:     '',
+      empleado_id:       mov.empleado_id,
+      categoria_id:      mov.categoria_id,
+      monto:             String(mov.monto),
+      fecha:             mov.fecha,
+      descripcion:       mov.descripcion || '',
+      cantidad:          '',
+      moneda_origen:     mov.moneda_origen     || 'ARS',
+      monto_origen:      mov.monto_origen      ? String(mov.monto_origen) : '',
+      cotizacion_usada:  mov.cotizacion_usada  ? String(mov.cotizacion_usada) : '',
+      cotizacion_tipo:   mov.cotizacion_tipo   || '',
+      cotizacion_fecha:  mov.cotizacion_fecha  || '',
+      cotizacion_fuente: mov.cotizacion_fuente || '',
+      monto_ars:         mov.monto_ars         ? String(mov.monto_ars) : '',
     })
     const emp = empleados.find(e => String(e.id) === String(mov.empleado_id))
-    setEmpInfo(emp?.tipo_salario ? { tipo_salario: emp.tipo_salario, monto_base: Number(emp.monto_base) || 0 } : null)
+    setEmpInfo(emp?.tipo_salario ? {
+      tipo_salario:      emp.tipo_salario,
+      monto_base:        Number(emp.monto_base) || 0,
+      moneda:            emp.moneda || 'ARS',
+      cotizacion_valor:  emp.cotizacion_valor  ? Number(emp.cotizacion_valor) : null,
+      cotizacion_tipo:   emp.cotizacion_tipo   || null,
+      cotizacion_fecha:  emp.cotizacion_fecha  || null,
+      cotizacion_fuente: emp.cotizacion_fuente || null,
+    } : null)
+    setMovCotizacion(null)
     setError(null)
     setModal(mov)
   }
 
-  const cerrarModal = () => setModal(false)
+  const cerrarModal = () => {
+    setModal(false)
+    setMovCotizacion(null)
+    setMovLoadingCot(false)
+  }
 
   const guardar = async (e) => {
     e.preventDefault()
+    if (empInfo?.moneda === 'USD' && !form.cotizacion_usada) {
+      setError('Debe seleccionar una cotización (compra o venta) para registrar este movimiento')
+      return
+    }
     setSaving(true); setError(null)
     try {
+      const esUSD = empInfo?.moneda === 'USD'
       const payload = {
         empleado_id:  form.empleado_id,
         categoria_id: form.categoria_id,
         fecha:        form.fecha,
         descripcion:  form.descripcion,
       }
-      if (modal === 'nuevo' && empInfo && empInfo.tipo_salario !== 'mensual' && form.cantidad) {
+
+      if (modal === 'nuevo' && empInfo && empInfo.tipo_salario !== 'mensual' && form.cantidad && !esUSD) {
         payload.cantidad = Number(form.cantidad)
       } else {
         payload.monto = Number(form.monto)
+      }
+
+      if (esUSD) {
+        payload.moneda_origen    = 'USD'
+        payload.monto_origen     = Number(form.monto_origen)
+        payload.cotizacion_usada = Number(form.cotizacion_usada)
+        payload.cotizacion_tipo  = form.cotizacion_tipo
+        payload.cotizacion_fecha = form.cotizacion_fecha
+        payload.cotizacion_fuente = form.cotizacion_fuente
+        payload.monto_ars        = Number(form.monto)
       }
 
       if (modal === 'nuevo') {
@@ -414,6 +678,7 @@ function TabMovimientos() {
 
   const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
   const esEdicion = modal && modal !== 'nuevo'
+  const isUSDMov  = (m) => m.moneda_origen === 'USD' && m.monto_origen && m.cotizacion_usada
 
   return (
     <>
@@ -435,7 +700,7 @@ function TabMovimientos() {
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b bg-gray-50/60" style={{ borderColor: 'rgba(15,110,86,0.1)' }}>
-                {['Empleado', 'Categoría', 'Monto', 'Fecha', 'Descripción', ''].map(h => (
+                {['Empleado', 'Categoría', 'Monto (ARS)', 'Fecha', 'Descripción', ''].map(h => (
                   <th key={h} className="text-left py-3 px-4 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -453,8 +718,13 @@ function TabMovimientos() {
                   <td className="py-3 px-4">
                     <Badge label={m.categorias_salariales?.nombre || '—'} />
                   </td>
-                  <td className="py-3 px-4 font-semibold text-gray-900 whitespace-nowrap">
-                    {fmt(m.monto)}
+                  <td className="py-3 px-4 whitespace-nowrap">
+                    <div className="font-semibold text-gray-900">{fmt(m.monto)}</div>
+                    {isUSDMov(m) && (
+                      <div className="text-[11px] text-gray-400">
+                        USD {Number(m.monto_origen).toLocaleString('es-AR', { minimumFractionDigits: 2 })} × ${Number(m.cotizacion_usada).toLocaleString('es-AR')}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-gray-500 whitespace-nowrap">{m.fecha}</td>
                   <td className="py-3 px-4 text-gray-500 max-w-[200px] truncate">{m.descripcion || '—'}</td>
@@ -503,15 +773,58 @@ function TabMovimientos() {
               </div>
             </div>
 
-            {empInfo && (
+            {/* Empleado ARS — info simple */}
+            {empInfo && empInfo.moneda !== 'USD' && (
               <div className="rounded-xl px-3 py-2.5 text-[12.5px] flex items-center gap-2"
                 style={{ background: '#E1F5EE', color: '#0F6E56' }}>
                 <span className="font-medium">{TIPO_SALARIO_LABEL[empInfo.tipo_salario]}</span>
                 <span>·</span>
-                <span>{fmt(empInfo.monto_base)} {empInfo.tipo_salario === 'hora' ? '/ hora' : empInfo.tipo_salario === 'turno' ? '/ turno' : '/ mes'}</span>
+                <span>
+                  {fmt(empInfo.monto_base)}
+                  {' '}{empInfo.tipo_salario === 'hora' ? '/ hora' : empInfo.tipo_salario === 'turno' ? '/ turno' : '/ mes'}
+                </span>
               </div>
             )}
 
+            {/* Empleado USD con cotización guardada — info enriquecida */}
+            {empInfo && empInfo.moneda === 'USD' && empInfo.cotizacion_valor && (
+              <div className="rounded-xl px-3 py-2.5 text-[12.5px]"
+                style={{ background: '#E1F5EE', color: '#0F6E56' }}>
+                <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                  <span className="font-medium">{TIPO_SALARIO_LABEL[empInfo.tipo_salario]}</span>
+                  <span>·</span>
+                  <span>
+                    USD {empInfo.monto_base.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {' '}/{empInfo.tipo_salario === 'hora' ? ' hora' : empInfo.tipo_salario === 'turno' ? ' turno' : ' mes'}
+                  </span>
+                  <span>·</span>
+                  <span>Cotización: $ {empInfo.cotizacion_valor.toLocaleString('es-AR')} ARS</span>
+                  <span>·</span>
+                  <span>
+                    Equiv: $ {Math.round(empInfo.monto_base * empInfo.cotizacion_valor).toLocaleString('es-AR')}
+                    {' '}/{empInfo.tipo_salario === 'hora' ? ' hora' : empInfo.tipo_salario === 'turno' ? ' turno' : ' mes'}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Empleado USD sin cotización guardada — selector de cotización */}
+            {empInfo && empInfo.moneda === 'USD' && !empInfo.cotizacion_valor && (
+              <>
+                <div className="rounded-xl px-3 py-2.5 text-[12.5px]"
+                  style={{ background: '#FEF3C7', color: '#92400E' }}>
+                  Este empleado no tiene cotización registrada. Seleccioná una para continuar.
+                </div>
+                <CotizacionBlock
+                  cotizacion={movCotizacion}
+                  loading={movLoadingCot}
+                  cotizacionTipo={form.cotizacion_tipo}
+                  onSelect={onSelectMovCotizacion}
+                />
+              </>
+            )}
+
+            {/* Cantidad horas/turnos (ARS y USD) */}
             {!esEdicion && empInfo && empInfo.tipo_salario !== 'mensual' && (
               <div>
                 <Label>{empInfo.tipo_salario === 'hora' ? 'Cantidad de horas *' : 'Cantidad de turnos *'}</Label>
@@ -540,18 +853,34 @@ function TabMovimientos() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Monto total *</Label>
+                <Label>Monto total (ARS) *</Label>
                 <input
                   type="number" step="0.01"
                   value={form.monto}
                   onChange={e => set('monto')(e.target.value)}
-                  readOnly={!esEdicion && !!(empInfo && empInfo.tipo_salario !== 'mensual')}
-                  required className={inputCls} style={{
+                  readOnly={
+                    (!esEdicion && !!(empInfo && empInfo.tipo_salario !== 'mensual') && empInfo?.moneda !== 'USD') ||
+                    (empInfo?.moneda === 'USD' && !!form.cotizacion_usada)
+                  }
+                  required
+                  className={`${inputCls} no-number-arrows`}
+                  style={{
                     ...inputStyle,
-                    background: (!esEdicion && empInfo && empInfo.tipo_salario !== 'mensual') ? '#f9fafb' : 'white',
+                    background:
+                      ((!esEdicion && empInfo && empInfo.tipo_salario !== 'mensual' && empInfo?.moneda !== 'USD') ||
+                      (empInfo?.moneda === 'USD' && !form.cotizacion_usada))
+                        ? '#f9fafb'
+                        : 'white',
                   }}
                   placeholder="0.00"
                 />
+                {empInfo?.moneda === 'USD' && form.cotizacion_usada && form.monto_origen && (
+                  <p className="text-[11.5px] text-gray-400 mt-1">
+                    USD {Number(form.monto_origen).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    {' '}× $ {Number(form.cotizacion_usada).toLocaleString('es-AR')}
+                    {' '}= $ {Number(form.monto).toLocaleString('es-AR')}
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Fecha *</Label>
@@ -726,7 +1055,7 @@ export default function Salarios() {
     <div className="fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-[20px] font-semibold text-gray-900">Estructura Salarial</h2>
+          <h2 className="font-serif text-[20px] font-semibold text-gray-900">Salarios</h2>
           <p className="text-[13px] text-gray-500 mt-0.5">Gestión de empleados, movimientos y categorías</p>
         </div>
       </div>

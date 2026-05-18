@@ -9,6 +9,9 @@ const canWrite = requireRole('admin', 'usuario');
 // Métricas
 router.get('/metricas', canRead, ctrl.metricas.bind(ctrl));
 
+// Cotización dólar (con cache en BD)
+router.get('/cotizacion-dolar', canRead, ctrl.cotizacionDolar.bind(ctrl));
+
 // Empleados
 router.get('/empleados',        canRead,  ctrl.listarEmpleados.bind(ctrl));
 router.get('/empleados/:id',    canRead,  ctrl.obtenerEmpleado.bind(ctrl));

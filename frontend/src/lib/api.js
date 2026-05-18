@@ -100,6 +100,9 @@ export const api = {
   crearCategoriaSalario:    (body)   => request('/api/salarios/categorias', { method: 'POST', body: JSON.stringify(body) }),
   eliminarCategoriaSalario: (id)     => request(`/api/salarios/categorias/${id}`, { method: 'DELETE' }),
 
+  // Cotización dólar
+  getCotizacionDolar: () => request('/api/salarios/cotizacion-dolar'),
+
   // Salarios — Movimientos
   getMovimientosSalario: (params = {}) => {
     const qs = new URLSearchParams(

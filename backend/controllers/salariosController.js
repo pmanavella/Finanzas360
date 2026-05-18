@@ -1,4 +1,5 @@
 const salariosService = require('../services/salariosService');
+const dolarApiService = require('../services/dolarApiService');
 
 class SalariosController {
   async listarEmpleados(req, res, next) {
@@ -63,6 +64,11 @@ class SalariosController {
 
   async metricas(req, res, next) {
     try { res.json(await salariosService.getMetricas()) }
+    catch (err) { next(err) }
+  }
+
+  async cotizacionDolar(req, res, next) {
+    try { res.json(await dolarApiService.obtenerCotizacionDelDia()) }
     catch (err) { next(err) }
   }
 }
