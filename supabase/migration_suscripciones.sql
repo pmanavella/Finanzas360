@@ -50,4 +50,3 @@ CREATE INDEX IF NOT EXISTS idx_movimientos_suscripcion_id ON movimientos(suscrip
 -- ============================================================
 -- FIN DEL SCRIPT
 -- ============================================================
-que
