@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   TrendingUp, TrendingDown, DollarSign, FileText,
-  Plus, RefreshCw, Calendar, ChevronDown, CheckCircle2
+  Plus, RefreshCw, Calendar, ChevronDown, CheckCircle2, Repeat2, AlertTriangle
 } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { api } from '../lib/api'
@@ -102,6 +102,7 @@ export default function Dashboard({ onNavigate }) {
   const [movs,            setMovs]            = useState([])
   const [allMovs,         setAllMovs]         = useState([])
   const [comps,           setComps]           = useState([])
+  const [alertas,         setAlertas]         = useState([])
   const [loading,         setLoading]         = useState(true)
   const [error,           setError]           = useState(null)
   const [filtro,          setFiltro]          = useState('Todos')
@@ -111,13 +112,15 @@ export default function Dashboard({ onNavigate }) {
   const cargar = async () => {
     setLoading(true); setError(null)
     try {
-      const [m, mov, comp] = await Promise.all([
+      const [m, mov, comp, prox] = await Promise.all([
         api.getMetricas(), api.getMovimientos(), api.getComprobantes(),
+        api.getProximasAVencer().catch(() => ({ data: [] })),
       ])
       setMetricas(m)
       setAllMovs(mov.data)
       setMovs(mov.data.slice(0, 7))
       setComps(comp.data.slice(0, 6))
+      setAlertas(prox.data || [])
     } catch (e) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -290,74 +293,112 @@ export default function Dashboard({ onNavigate }) {
           </div>
         </div>
 
-        {/* Gastos por categoría */}
-        <div className="card p-5 animate-slideUp delay-400">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[14px] font-bold text-ink">Gastos por categoría</h3>
-            <div className="relative">
-              <button
-                onClick={() => setShowPeriodoMenu(v => !v)}
-                className="flex items-center gap-1 text-xs text-gray-500 font-medium px-2.5 py-1.5 rounded-lg border border-muted hover:bg-cream transition-colors">
-                {periodoGrafico === 'mes' ? 'Este mes' : 'Este año'} <ChevronDown size={12} className={`transition-transform duration-150 ${showPeriodoMenu ? 'rotate-180' : ''}`} />
-              </button>
-              {showPeriodoMenu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setShowPeriodoMenu(false)} />
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-muted rounded-xl shadow-lg py-1 z-20 w-28">
-                    {[['mes', 'Este mes'], ['año', 'Este año']].map(([val, label]) => (
-                      <button key={val}
-                        onClick={() => { setPeriodoGrafico(val); setShowPeriodoMenu(false) }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-cream transition-colors"
-                        style={{ color: periodoGrafico === val ? '#0a3b24' : '#6b7280', fontWeight: periodoGrafico === val ? 700 : 500 }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+        {/* Columna derecha: Gastos por categoría + Alertas */}
+        <div className="flex flex-col gap-5">
+
+          {/* Gastos por categoría */}
+          <div className="card p-5 animate-slideUp delay-400">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[14px] font-bold text-ink">Gastos por categoría</h3>
+              <div className="relative">
+                <button
+                  onClick={() => setShowPeriodoMenu(v => !v)}
+                  className="flex items-center gap-1 text-xs text-gray-500 font-medium px-2.5 py-1.5 rounded-lg border border-muted hover:bg-cream transition-colors">
+                  {periodoGrafico === 'mes' ? 'Este mes' : 'Este año'} <ChevronDown size={12} className={`transition-transform duration-150 ${showPeriodoMenu ? 'rotate-180' : ''}`} />
+                </button>
+                {showPeriodoMenu && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowPeriodoMenu(false)} />
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-muted rounded-xl shadow-lg py-1 z-20 w-28">
+                      {[['mes', 'Este mes'], ['año', 'Este año']].map(([val, label]) => (
+                        <button key={val}
+                          onClick={() => { setPeriodoGrafico(val); setShowPeriodoMenu(false) }}
+                          className="w-full text-left px-3 py-2 text-xs hover:bg-cream transition-colors"
+                          style={{ color: periodoGrafico === val ? '#0a3b24' : '#6b7280', fontWeight: periodoGrafico === val ? 700 : 500 }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
+
+            {pieData.length > 0 ? (
+              <div className="flex items-center gap-3">
+                <div style={{ width:155, height:175, flexShrink:0 }}>
+                  <PieChart width={155} height={175}>
+                    <Pie data={pieData} cx={77} cy={87}
+                      innerRadius={50} outerRadius={72}
+                      dataKey="value" strokeWidth={3} stroke="#fff"
+                      paddingAngle={4} animationBegin={200} animationDuration={900}>
+                      {pieData.map((e, i) => (
+                        <Cell key={i} fill={CAT_COLORS[e.name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<ChartTooltip />} />
+                  </PieChart>
+                </div>
+                <div className="flex-1 space-y-3 min-w-0">
+                  {pieData.map((entry, i) => {
+                    const total = pieData.reduce((s, e) => s + e.value, 0)
+                    const pct = total > 0 ? Math.round(entry.value / total * 100) : 0
+                    const color = CAT_COLORS[entry.name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+                    return (
+                      <div key={entry.name} className="flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2 text-[12px] text-gray-600 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background:color }} />
+                          <span className="truncate">{entry.name}</span>
+                        </span>
+                        <span className="text-[12px] font-bold text-ink flex-shrink-0">{pct}%</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-300">
+                <TrendingDown size={30} className="mb-2" />
+                <p className="text-sm">Sin gastos este mes</p>
+              </div>
+            )}
           </div>
 
-          {pieData.length > 0 ? (
-            <div className="flex items-center gap-3">
-              {/* Donut chart */}
-              <div style={{ width:155, height:175, flexShrink:0 }}>
-                <PieChart width={155} height={175}>
-                  <Pie data={pieData} cx={77} cy={87}
-                    innerRadius={50} outerRadius={72}
-                    dataKey="value" strokeWidth={3} stroke="#fff"
-                    paddingAngle={4} animationBegin={200} animationDuration={900}>
-                    {pieData.map((e, i) => (
-                      <Cell key={i} fill={CAT_COLORS[e.name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltip />} />
-                </PieChart>
+          {/* Alertas: suscripciones próximas a vencer */}
+          {alertas.length > 0 && (
+            <div className="rounded-2xl p-5 animate-slideUp delay-500"
+              style={{ background: '#FFF5F5', border: '1px solid #FECACA' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={16} style={{ color: '#EF4444' }} />
+                <h3 className="text-[14px] font-bold" style={{ color: '#EF4444' }}>Alertas</h3>
               </div>
-              {/* Leyenda lateral */}
-              <div className="flex-1 space-y-3 min-w-0">
-                {pieData.map((entry, i) => {
-                  const total = pieData.reduce((s, e) => s + e.value, 0)
-                  const pct = total > 0 ? Math.round(entry.value / total * 100) : 0
-                  const color = CAT_COLORS[entry.name] || FALLBACK_COLORS[i % FALLBACK_COLORS.length]
+              <div className="space-y-2">
+                {alertas.map(s => {
+                  const hoy = new Date(); hoy.setHours(0,0,0,0)
+                  const vcto = new Date(s.proximo_vencimiento + 'T00:00:00')
+                  const dias = Math.round((vcto - hoy) / 86400000)
+                  const montoFmt = s.moneda === 'USD'
+                    ? new Intl.NumberFormat('es-AR', { style:'currency', currency:'USD', minimumFractionDigits:2 }).format(s.monto)
+                    : new Intl.NumberFormat('es-AR', { style:'currency', currency:'ARS', maximumFractionDigits:0 }).format(s.monto)
                   return (
-                    <div key={entry.name} className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-2 text-[12px] text-gray-600 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background:color }} />
-                        <span className="truncate">{entry.name}</span>
+                    <div key={s.id} className="flex items-center gap-2 text-[13px]">
+                      <Repeat2 size={14} style={{ color:'#EF4444', flexShrink:0 }} />
+                      <span className="text-gray-700">
+                        <span className="font-semibold">{s.nombre}</span>
+                        {' '}
+                        <span style={{ color:'#EF4444', fontWeight:600 }}>
+                          vence {dias === 0 ? 'hoy' : dias === 1 ? 'mañana' : `en ${dias} días`}
+                        </span>
+                        {' · '}
+                        <span className="text-gray-500">{montoFmt}</span>
                       </span>
-                      <span className="text-[12px] font-bold text-ink flex-shrink-0">{pct}%</span>
                     </div>
                   )
                 })}
               </div>
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-300">
-              <TrendingDown size={30} className="mb-2" />
-              <p className="text-sm">Sin gastos este mes</p>
-            </div>
           )}
+
         </div>
       </div>
 

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Save, Upload } from 'lucide-react'
+import { X, Save, Upload, Repeat2, ChevronDown } from 'lucide-react'
 import { api } from '../lib/api'
 
-const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
+const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Suscripción', 'Otros']
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf']
@@ -24,36 +24,84 @@ const INICIAL = {
   notas: '',
 }
 
+const SUSC_INICIAL = {
+  nombre: '', detalle: '', proveedor: '',
+  monto: '', moneda: 'ARS',
+  dia_vencimiento: '', frecuencia: 'Mensual',
+}
+
+const inputCls = 'w-full border rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white transition-colors focus:ring-2 focus:ring-teal-700/10'
+const inputStyle = { borderColor: 'rgba(15,110,86,0.25)' }
+
 export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
   const [form, setForm] = useState(
-    movimiento
-      ? { ...movimiento }
-      : { ...INICIAL, tipo: tipo || 'Gasto' }
+    movimiento ? { ...movimiento } : { ...INICIAL, tipo: tipo || 'Gasto' }
   )
 
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
-  const [archivo, setArchivo] = useState(null)
-  const [ocrData, setOcrData] = useState(null)
+  const [loading,      setLoading]      = useState(false)
+  const [error,        setError]        = useState(null)
+  const [success,      setSuccess]      = useState(false)
+  const [archivo,      setArchivo]      = useState(null)
+  const [ocrData,      setOcrData]      = useState(null)
   const [uploadingOCR, setUploadingOCR] = useState(false)
 
+  // Integración de suscripciones
+  const [suscMode,        setSuscMode]        = useState('ninguna') // 'ninguna' | 'existente' | 'nueva'
+  const [suscripciones,   setSuscripciones]   = useState([])
+  const [suscripcionId,   setSuscripcionId]   = useState('')
+  const [nuevaSusc,       setNuevaSusc]       = useState({ ...SUSC_INICIAL })
+  const [loadingSusc,     setLoadingSusc]     = useState(false)
+
+  const esSuscripcion = form.tipo === 'Gasto' && form.categoria === 'Suscripción' && !movimiento
+
+  // Cargar suscripciones activas cuando corresponde
+  useEffect(() => {
+    if (!esSuscripcion) return
+    setLoadingSusc(true)
+    api.getSuscripciones({ estado: 'Activa' })
+      .then(r => setSuscripciones(r.data || []))
+      .catch(() => setSuscripciones([]))
+      .finally(() => setLoadingSusc(false))
+  }, [esSuscripcion])
+
+  // Autocompletar al seleccionar suscripción existente
+  useEffect(() => {
+    if (suscMode !== 'existente' || !suscripcionId) return
+    const s = suscripciones.find(s => s.id === suscripcionId)
+    if (!s) return
+    set('descripcion', s.nombre)
+    if (s.proveedor) set('proveedor_cliente', s.proveedor)
+    if (s.moneda === 'ARS') {
+      set('monto', String(s.monto))
+    } else {
+      api.getCotizacionDolar()
+        .then(c => {
+          const rate = c.valor_unico ?? c.valor_venta ?? c.valor_compra
+          if (!rate) { set('monto', ''); return }
+          set('monto', String(Math.round(Number(s.monto) * rate)))
+        })
+        .catch(() => {
+          set('monto', '')
+          setError('No se pudo obtener la cotización del dólar. Ingresá el monto manualmente.')
+        })
+    }
+  }, [suscripcionId, suscMode])
+
+  // Limpiar selección al cambiar modo
+  useEffect(() => {
+    setSuscripcionId('')
+    setNuevaSusc({ ...SUSC_INICIAL })
+  }, [suscMode])
+
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const setNS = (k, v) => setNuevaSusc(f => ({ ...f, [k]: v }))
 
   const handleArchivo = async (e) => {
     const file = e.target.files[0]
     if (!file) return
-
     const fileError = validateFile(file)
-    if (fileError) {
-      setError(fileError)
-      return
-    }
-
-    setArchivo(file)
-    setUploadingOCR(true)
-    setOcrData(null)
-    setError(null)
+    if (fileError) { setError(fileError); return }
+    setArchivo(file); setUploadingOCR(true); setOcrData(null); setError(null)
     try {
       const fd = new FormData()
       fd.append('archivo', file)
@@ -64,40 +112,57 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
       if (res.ocr.proveedor && !form.proveedor_cliente) set('proveedor_cliente', res.ocr.proveedor)
     } catch (err) {
       setError('No se pudo procesar el comprobante. Completá los campos manualmente.')
-      console.error('OCR error:', err)
-    } finally {
-      setUploadingOCR(false)
-    }
+    } finally { setUploadingOCR(false) }
   }
 
   const handleSubmit = async () => {
     if (loading || success) return
 
-    const fechaVal = form.fecha
+    const fechaVal      = form.fecha
     const descripcionVal = form.descripcion?.trim()
-    const montoVal = parseFloat(form.monto)
+    const montoVal      = parseFloat(form.monto)
 
-    if (!fechaVal) {
-      setError('La fecha es obligatoria.')
-      return
-    }
-    if (!descripcionVal) {
-      setError('La descripción no puede estar vacía.')
-      return
-    }
-    if (!form.monto || isNaN(montoVal) || montoVal <= 0) {
-      setError('El monto debe ser un número mayor a 0.')
-      return
+    if (!fechaVal) { setError('La fecha es obligatoria.'); return }
+    if (!descripcionVal) { setError('La descripción no puede estar vacía.'); return }
+    if (!form.monto || isNaN(montoVal) || montoVal <= 0) { setError('El monto debe ser un número mayor a 0.'); return }
+
+    // Validaciones de nueva suscripción
+    if (esSuscripcion && suscMode === 'nueva') {
+      if (!nuevaSusc.nombre?.trim()) { setError('El nombre de la suscripción es obligatorio.'); return }
+      const diaNum = parseInt(nuevaSusc.dia_vencimiento)
+      if (!nuevaSusc.dia_vencimiento || isNaN(diaNum) || diaNum < 1 || diaNum > 31) {
+        setError('El día de vencimiento de la suscripción debe ser entre 1 y 31.'); return
+      }
     }
 
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     try {
+      let suscripcion_id = null
+
+      if (esSuscripcion) {
+        if (suscMode === 'existente' && suscripcionId) {
+          suscripcion_id = suscripcionId
+        } else if (suscMode === 'nueva') {
+          const susc = await api.crearSuscripcion({
+            nombre:         nuevaSusc.nombre.trim(),
+            detalle:        nuevaSusc.detalle?.trim() || null,
+            proveedor:      nuevaSusc.proveedor?.trim() || null,
+            monto:          montoVal,
+            moneda:         nuevaSusc.moneda,
+            dia_vencimiento: parseInt(nuevaSusc.dia_vencimiento),
+            frecuencia:     nuevaSusc.frecuencia,
+            estado:         'Activa',
+          })
+          suscripcion_id = susc.id
+        }
+      }
+
       let saved
+      const payload = { ...form, descripcion: descripcionVal, suscripcion_id }
       if (movimiento) {
-        saved = await api.editarMovimiento(movimiento.id, { ...form, descripcion: descripcionVal })
+        saved = await api.editarMovimiento(movimiento.id, payload)
       } else {
-        saved = await api.crearMovimiento({ ...form, descripcion: descripcionVal })
+        saved = await api.crearMovimiento(payload)
         if (ocrData?.comprobanteId) {
           await api.vincularComprobante(ocrData.comprobanteId, saved.id)
         }
@@ -111,16 +176,9 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
     }
   }
 
-  const inputCls = 'w-full border rounded-xl px-3 py-2.5 text-[13px] outline-none bg-white transition-colors focus:ring-2 focus:ring-teal-700/10'
-  const inputStyle = { borderColor: 'rgba(15,110,86,0.25)' }
-
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card fade-in"
-        style={{ maxWidth: 480 }}
-        onClick={e => e.stopPropagation()}
-      >
+      <div className="modal-card fade-in" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
         <div className="modal-accent" />
 
         <div className="modal-header">
@@ -136,18 +194,14 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
           {!movimiento && (
             <div className="flex gap-2">
               {['Ingreso', 'Gasto'].map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => set('tipo', t)}
+                <button key={t} type="button" onClick={() => set('tipo', t)}
                   className="flex-1 py-2 rounded-xl text-[13px] font-medium border transition-all"
                   style={form.tipo === t
                     ? t === 'Ingreso'
                       ? { background: '#E1F5EE', borderColor: '#0F6E56', color: '#0F6E56' }
                       : { background: '#FEE2E2', borderColor: '#DC2626', color: '#DC2626' }
                     : { background: 'white', borderColor: 'rgba(15,110,86,0.2)', color: '#6b7280' }
-                  }
-                >
+                  }>
                   {t}
                 </button>
               ))}
@@ -168,20 +222,20 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
           </div>
 
           <div>
+            <label className="form-label">Descripción *</label>
+            <input type="text" value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
+              placeholder="Ej: Servidor AWS Marzo 2026" className={inputCls} style={inputStyle} />
+          </div>
+
+          <div>
             <label className="form-label">Categoría</label>
             <div className="relative">
               <select value={form.categoria} onChange={e => set('categoria', e.target.value)}
                 className={inputCls + ' appearance-none pr-8'} style={inputStyle}>
                 {CATEGORIAS.map(c => <option key={c}>{c}</option>)}
               </select>
-              <svg className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
-          </div>
-
-          <div>
-            <label className="form-label">Descripción *</label>
-            <input type="text" value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
-              placeholder="Ej: Servidor AWS Marzo 2026" className={inputCls} style={inputStyle} />
           </div>
 
           <div>
@@ -190,6 +244,106 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
               placeholder={form.tipo === 'Ingreso' ? 'Nombre cliente' : 'Nombre proveedor'}
               className={inputCls} style={inputStyle} />
           </div>
+
+          {/* ── Integración de suscripciones ── */}
+          {esSuscripcion && (
+            <div className="rounded-xl border p-3 space-y-3" style={{ borderColor: 'rgba(15,110,86,0.2)', background: '#F7FBF9' }}>
+              <div className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-700">
+                <Repeat2 size={14} style={{ color: '#0F6E56' }} />
+                ¿Este gasto corresponde a una suscripción?
+              </div>
+              {/* Selector de modo */}
+              <div className="flex gap-2">
+                {[['ninguna', 'No asociar'], ['existente', 'Seleccionar existente'], ['nueva', 'Crear nueva']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => setSuscMode(val)}
+                    className="flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-all"
+                    style={suscMode === val
+                      ? { background: '#0F6E56', borderColor: '#0F6E56', color: '#fff' }
+                      : { background: '#fff', borderColor: 'rgba(15,110,86,0.25)', color: '#6b7280' }}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Seleccionar existente */}
+              {suscMode === 'existente' && (
+                <div>
+                  <label className="form-label">Suscripción activa</label>
+                  <div className="relative">
+                    <select value={suscripcionId} onChange={e => setSuscripcionId(e.target.value)}
+                      className={inputCls + ' appearance-none pr-8'} style={inputStyle}
+                      disabled={loadingSusc}>
+                      <option value="">— Seleccioná una suscripción —</option>
+                      {suscripciones.map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.nombre}{s.proveedor ? ` (${s.proveedor})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                  </div>
+                  {suscripciones.length === 0 && !loadingSusc && (
+                    <p className="text-[11.5px] text-gray-400 mt-1">No hay suscripciones activas registradas.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Crear nueva */}
+              {suscMode === 'nueva' && (
+                <div className="space-y-2.5 pt-1">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="form-label">Nombre *</label>
+                      <input value={nuevaSusc.nombre} onChange={e => setNS('nombre', e.target.value)}
+                        placeholder="Ej: ChatGPT Plus" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label className="form-label">Proveedor</label>
+                      <input value={nuevaSusc.proveedor} onChange={e => setNS('proveedor', e.target.value)}
+                        placeholder="Ej: OpenAI" className={inputCls} style={inputStyle} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="form-label">Detalle</label>
+                    <input value={nuevaSusc.detalle} onChange={e => setNS('detalle', e.target.value)}
+                      placeholder="Ej: Plan mensual con acceso a GPT-4" className={inputCls} style={inputStyle} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="form-label">Moneda</label>
+                      <div className="flex gap-1.5">
+                        {['ARS', 'USD'].map(m => (
+                          <button key={m} type="button" onClick={() => setNS('moneda', m)}
+                            className="flex-1 py-2 rounded-xl text-[12px] font-semibold border transition-all"
+                            style={nuevaSusc.moneda === m
+                              ? { background: '#0F6E56', borderColor: '#0F6E56', color: '#fff' }
+                              : { background: '#fff', borderColor: 'rgba(15,110,86,0.25)', color: '#6b7280' }}>
+                            {m}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="form-label">Día vcto. *</label>
+                      <input type="number" value={nuevaSusc.dia_vencimiento}
+                        onChange={e => setNS('dia_vencimiento', e.target.value)}
+                        placeholder="1–31" min="1" max="31" className={inputCls} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label className="form-label">Frecuencia</label>
+                      <div className="relative">
+                        <select value={nuevaSusc.frecuencia} onChange={e => setNS('frecuencia', e.target.value)}
+                          className={inputCls + ' appearance-none pr-6 text-[12px]'} style={inputStyle}>
+                          {['Mensual', 'Trimestral', 'Semestral', 'Anual'].map(f => <option key={f}>{f}</option>)}
+                        </select>
+                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="form-label">Notas</label>
@@ -200,13 +354,13 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
 
           {!movimiento && (
             <div>
-              <label className="form-label">Comprobante opcional</label>
+              <label className="form-label">Comprobante (opcional)</label>
               <label className={`h-[42px] flex items-center gap-2 px-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors text-[13px] ${
                 archivo ? 'border-teal-400 bg-teal-50 text-teal-700' : 'border-gray-200 hover:border-gray-300 text-gray-500'
               }`}>
                 <Upload size={15} />
                 <span className="truncate">
-                  {uploadingOCR ? 'Procesando OCR...' : archivo ? archivo.name : 'Subir imagen o PDF'}
+                  {uploadingOCR ? 'Procesando OCR...' : archivo ? archivo.name : 'Subir imagen o PDF (máx. 10 MB)'}
                 </span>
                 <input type="file" accept="image/jpeg,image/jpg,image/png,application/pdf"
                   onChange={handleArchivo} className="hidden" />

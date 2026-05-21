@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, MoreVertical, X, ChevronDown } from 'lucide-react'
 import { api } from '../lib/api'
+import { validateUserForm, MAX_NAME_LENGTH, MAX_EMAIL_LENGTH, MAX_PASSWORD_LENGTH } from '../utils/validators'
 
 const ROL_STYLE = {
   'Dirección': { background: '#E1F5EE', color: '#0F6E56' },
@@ -57,6 +58,7 @@ export default function Usuarios() {
   const [form, setForm]         = useState({ email: '', nombre: '', rol_id: '', estado: 'Activo', password: '' })
   const [saving, setSaving]     = useState(false)
   const [error, setError]       = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -74,22 +76,32 @@ export default function Usuarios() {
   const abrirNuevo = () => {
     const defaultRol = rolesPermitidos.find(r => r.nombre === 'usuario') || rolesPermitidos[0]
     setForm({ email: '', nombre: '', rol_id: defaultRol?.id || '', estado: 'Activo', password: '' })
-    setError(null)    // limpiar banner global al abrir modal
+    setError(null)
+    setFieldErrors({})
     setModal('nuevo')
   }
 
   const abrirEditar = (u) => {
     setForm({ email: u.email, nombre: u.nombre, rol_id: u.rol_id, estado: u.estado, password: '' })
     setError(null)
+    setFieldErrors({})
     setModal(u)
     setOpenMenu(null)
   }
 
   const guardar = async (e) => {
     e.preventDefault()
-    setSaving(true); setError(null)
+    const isEdit = modal !== 'nuevo'
+    const errors = validateUserForm(form, isEdit)
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
+    }
+    setSaving(true)
+    setError(null)
+    setFieldErrors({})
     try {
-      if (modal === 'nuevo') {
+      if (!isEdit) {
         await api.crearUsuario(form)
       } else {
         await api.editarUsuario(modal.id, form)
@@ -97,7 +109,12 @@ export default function Usuarios() {
       setModal(null)
       cargar()
     } catch (err) {
-      setError(err.message)
+      const msg = err.message || ''
+      if (msg.includes('correo electrónico')) {
+        setFieldErrors(prev => ({ ...prev, email: msg }))
+      } else {
+        setError(msg)
+      }
     } finally {
       setSaving(false)
     }
@@ -118,7 +135,10 @@ export default function Usuarios() {
     }
   }
 
-  const set = (k) => (v) => setForm(f => ({ ...f, [k]: v }))
+  const set = (k) => (v) => {
+    setForm(f => ({ ...f, [k]: v }))
+    if (fieldErrors[k]) setFieldErrors(prev => ({ ...prev, [k]: null }))
+  }
 
   return (
     <div className="fade-in space-y-4">
@@ -240,16 +260,34 @@ export default function Usuarios() {
               </button>
             </div>
             <div className="modal-body">
-              <form onSubmit={guardar} className="space-y-3">
+              <form onSubmit={guardar} noValidate className="space-y-3">
                 <div>
                   <label className="form-label">Nombre *</label>
-                  <input value={form.nombre} onChange={e => set('nombre')(e.target.value)}
-                    required className={inputCls} style={inputStyle} />
+                  <input
+                    value={form.nombre}
+                    onChange={e => set('nombre')(e.target.value)}
+                    maxLength={MAX_NAME_LENGTH}
+                    className={inputCls}
+                    style={{ ...inputStyle, ...(fieldErrors.nombre ? { borderColor: '#f87171' } : {}) }}
+                  />
+                  {fieldErrors.nombre && (
+                    <p className="text-[11.5px] text-red-500 mt-1">{fieldErrors.nombre}</p>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">Email *</label>
-                  <input type="email" value={form.email} onChange={e => set('email')(e.target.value)}
-                    required className={inputCls} style={inputStyle} />
+                  <input
+                    type="text"
+                    value={form.email}
+                    onChange={e => set('email')(e.target.value)}
+                    maxLength={MAX_EMAIL_LENGTH}
+                    autoComplete="email"
+                    className={inputCls}
+                    style={{ ...inputStyle, ...(fieldErrors.email ? { borderColor: '#f87171' } : {}) }}
+                  />
+                  {fieldErrors.email && (
+                    <p className="text-[11.5px] text-red-500 mt-1">{fieldErrors.email}</p>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">
@@ -259,11 +297,14 @@ export default function Usuarios() {
                     type="password"
                     value={form.password}
                     onChange={e => set('password')(e.target.value)}
-                    required={modal === 'nuevo'}
+                    maxLength={MAX_PASSWORD_LENGTH}
                     placeholder={modal === 'nuevo' ? '' : '••••••••'}
                     className={inputCls}
-                    style={inputStyle}
+                    style={{ ...inputStyle, ...(fieldErrors.password ? { borderColor: '#f87171' } : {}) }}
                   />
+                  {fieldErrors.password && (
+                    <p className="text-[11.5px] text-red-500 mt-1">{fieldErrors.password}</p>
+                  )}
                 </div>
                 <div>
                   <label className="form-label">Rol *</label>

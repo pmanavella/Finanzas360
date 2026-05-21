@@ -1,5 +1,7 @@
-const movimientosRepository = require('../repositories/movimientosRepository');
-const comprobantesRepository = require('../repositories/comprobantesRepository');
+const movimientosRepository   = require('../repositories/movimientosRepository');
+const comprobantesRepository  = require('../repositories/comprobantesRepository');
+const suscripcionesService    = require('./suscripcionesService');
+const dolarApiService         = require('./dolarApiService');
 
 async function getAll(filters) {
   const { data, error } = await movimientosRepository.findAll(filters);
@@ -15,7 +17,7 @@ async function getById(id) {
 }
 
 async function create(body, createdBy) {
-  const { fecha, descripcion, categoria, tipo, monto, proveedor_cliente, notas } = body;
+  const { fecha, descripcion, categoria, tipo, monto, proveedor_cliente, notas, suscripcion_id } = body;
 
   if (!fecha || !descripcion || !categoria || !tipo || !monto) {
     throw Object.assign(
@@ -34,11 +36,45 @@ async function create(body, createdBy) {
     throw Object.assign(new Error('El monto debe ser un número mayor a 0'), { status: 400 });
   }
 
+  let montoFinal = montoNum;
+  if (suscripcion_id && tipo === 'Gasto') {
+    try {
+      const susc = await suscripcionesService.obtenerPorId(suscripcion_id);
+      if (susc && susc.moneda === 'USD') {
+        const cotizacion = await dolarApiService.obtenerCotizacionDelDia();
+        const rate = cotizacion.valor_unico ?? cotizacion.valor_venta ?? cotizacion.valor_compra;
+        if (!rate) throw new Error('Cotización no disponible');
+        montoFinal = Math.round(susc.monto * rate * 100) / 100;
+        console.log(`[MOV] USD→ARS: ${susc.monto} × ${rate} = ${montoFinal}`);
+      }
+    } catch (e) {
+      if (e.message.includes('cotización') || e.message.includes('cotizacion') || e.message.includes('Cotización')) {
+        throw Object.assign(
+          new Error('No se pudo obtener la cotización del dólar para convertir el monto. Intentá de nuevo más tarde.'),
+          { status: 503 }
+        );
+      }
+      console.warn('[MOV] No se pudo verificar suscripción para conversión:', e.message);
+    }
+  }
+
   const { data, error } = await movimientosRepository.create({
-    fecha, descripcion: descripcion.trim(), categoria, tipo, monto: montoNum, proveedor_cliente, notas,
+    fecha, descripcion: descripcion.trim(), categoria, tipo, monto: montoFinal,
+    proveedor_cliente, notas,
+    suscripcion_id: suscripcion_id || null,
     created_by: createdBy || null,
   });
   if (error) throw error;
+
+  // Si se asocia a una suscripción activa, actualizar su último pago
+  if (suscripcion_id && tipo === 'Gasto') {
+    try {
+      await suscripcionesService.marcarPago(suscripcion_id, fecha);
+    } catch (e) {
+      console.error('[MOV] No se pudo actualizar la suscripción:', e.message);
+    }
+  }
+
   return data;
 }
 

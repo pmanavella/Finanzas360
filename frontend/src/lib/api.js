@@ -124,4 +124,18 @@ export const api = {
   // Backup
   exportarBackup:  ()       => request('/api/backup/export'),
   restaurarBackup: (backup) => request('/api/backup/restore', { method: 'POST', body: JSON.stringify(backup) }),
+
+  // Suscripciones
+  getSuscripciones:      (params = {}) => {
+    const qs = new URLSearchParams(
+      Object.fromEntries(Object.entries(params).filter(([, v]) => v))
+    ).toString()
+    return request(`/api/suscripciones${qs ? `?${qs}` : ''}`)
+  },
+  getProximasAVencer:    ()         => request('/api/suscripciones/proximas-vencer'),
+  getSuscripcion:        (id)       => request(`/api/suscripciones/${id}`),
+  crearSuscripcion:      (body)     => request('/api/suscripciones', { method: 'POST', body: JSON.stringify(body) }),
+  editarSuscripcion:     (id, body) => request(`/api/suscripciones/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eliminarSuscripcion:   (id)       => request(`/api/suscripciones/${id}`, { method: 'DELETE' }),
+  marcarPagoSuscripcion: (id, fecha_pago) => request(`/api/suscripciones/${id}/pago`, { method: 'POST', body: JSON.stringify({ fecha_pago }) }),
 }

@@ -2,7 +2,7 @@ import {
   LayoutDashboard, TrendingUp, TrendingDown,
   FileText, Upload, LogOut, Menu, X,
   CreditCard, Users, Wallet, ChevronDown,
-  LayoutGrid, ArrowUpDown, Settings, LayoutList, ShieldCheck
+  LayoutGrid, ArrowUpDown, Settings, LayoutList, ShieldCheck, Repeat2
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import LogoIcon from './LogoIcon'
@@ -27,7 +27,8 @@ const navItems = [
   { id: 'ingresos',     label: 'Ingresos',       icon: TrendingUp,      group: 'MOVIMIENTOS'   },
   { id: 'gastos',       label: 'Gastos',         icon: TrendingDown,    group: 'MOVIMIENTOS'   },
   { id: 'deudas',       label: 'Deudas',         icon: CreditCard,      group: 'MOVIMIENTOS'   },
-  { id: 'salarios',     label: 'Salarios',       icon: Wallet,          group: 'MOVIMIENTOS'   },
+  { id: 'salarios',       label: 'Salarios',       icon: Wallet,   group: 'MOVIMIENTOS' },
+  { id: 'suscripciones', label: 'Suscripciones',  icon: Repeat2,  group: 'MOVIMIENTOS' },
   { id: 'comprobantes', label: 'Comprobantes',   icon: FileText,        group: 'DOCUMENTOS'    },
   { id: 'excel',        label: 'Importar Excel', icon: Upload,          group: 'DOCUMENTOS'    },
   { id: 'usuarios',     label: 'Usuarios',       icon: Users,           group: 'ADMINISTRACIÓN'},

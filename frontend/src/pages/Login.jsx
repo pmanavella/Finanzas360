@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { API_URL } from '../lib/supabase'
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const MIN_PASSWORD_LENGTH = 6
+import { EMAIL_REGEX, MIN_PASSWORD_LENGTH } from '../utils/validators'
 
 function validateLoginForm(email, password) {
   if (!email.trim() || !EMAIL_REGEX.test(email.trim())) {

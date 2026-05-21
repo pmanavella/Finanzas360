@@ -1055,7 +1055,7 @@ export default function Salarios() {
     <div className="fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-serif text-[20px] font-semibold text-gray-900">Salarios</h2>
+          <h2 className="page-title">Salarios</h2>
           <p className="text-[13px] text-gray-500 mt-0.5">Gestión de empleados, movimientos y categorías</p>
         </div>
       </div>

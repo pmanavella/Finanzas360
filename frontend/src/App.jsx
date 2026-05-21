@@ -9,6 +9,7 @@ import Comprobantes from './components/Comprobantes'
 import ImportarExcel from './components/ImportarExcel'
 import Deudas from './components/Deudas'
 import Salarios from './components/Salarios'
+import Suscripciones from './components/Suscripciones'
 import Usuarios from './components/Usuarios'
 import Respaldo from './pages/Respaldo'
 import TodosMovimientos from './components/TodosMovimientos'
@@ -39,8 +40,9 @@ function FinancialApp() {
       {page === 'gastos'       && (
         <Movimientos tipo="Gasto" openForm={openForm} onFormClose={() => setOpenForm(null)} />
       )}
-      {page === 'deudas'       && <Deudas />}
-      {page === 'salarios'     && <Salarios />}
+      {page === 'deudas'         && <Deudas />}
+      {page === 'salarios'       && <Salarios />}
+      {page === 'suscripciones'  && <Suscripciones />}
       {page === 'comprobantes' && <Comprobantes />}
       {page === 'excel'        && <ImportarExcel />}
       {page === 'todos'        && <TodosMovimientos />}
