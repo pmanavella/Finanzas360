@@ -5,8 +5,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "start:qa": "DOTENV_CONFIG_PATH=.env.qa node -r dotenv/config index.js",
     "dev": "nodemon index.js",
-    "seed": "node scripts/seed-admin.js"
+    "dev:qa": "DOTENV_CONFIG_PATH=.env.qa nodemon -r dotenv/config index.js",
+    "seed": "node scripts/seed-admin.js",
+    "test": "echo \"Jest se configura en Fase 4\" && exit 0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

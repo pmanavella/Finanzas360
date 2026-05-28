@@ -264,6 +264,7 @@ export default function Usuarios() {
                 <div>
                   <label className="form-label">Nombre *</label>
                   <input
+                    data-testid="input-nombre"
                     value={form.nombre}
                     onChange={e => set('nombre')(e.target.value)}
                     maxLength={MAX_NAME_LENGTH}
@@ -277,6 +278,7 @@ export default function Usuarios() {
                 <div>
                   <label className="form-label">Email *</label>
                   <input
+                    data-testid="input-email"
                     type="text"
                     value={form.email}
                     onChange={e => set('email')(e.target.value)}
@@ -294,6 +296,7 @@ export default function Usuarios() {
                     Contraseña {modal === 'nuevo' ? '*' : '(dejar vacío para no cambiar)'}
                   </label>
                   <input
+                    data-testid="input-password"
                     type="password"
                     value={form.password}
                     onChange={e => set('password')(e.target.value)}
@@ -309,7 +312,7 @@ export default function Usuarios() {
                 <div>
                   <label className="form-label">Rol *</label>
                   <div className="relative">
-                    <select value={form.rol_id} onChange={e => set('rol_id')(e.target.value)}
+                    <select data-testid="select-rol" value={form.rol_id} onChange={e => set('rol_id')(e.target.value)}
                       required className={inputCls + ' appearance-none pr-8'} style={inputStyle}>
                       <option value="">Seleccionar rol</option>
                       {rolesPermitidos.map(r => <option key={r.id} value={r.id}>{r.nombre}</option>)}

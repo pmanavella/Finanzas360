@@ -3,6 +3,15 @@
 backend/.env
 frontend/.env
 
+backend/.env.qa
+backend/.env.production
+backend/.env.test
+frontend/.env.qa
+frontend/.env.production
+
+# Credenciales de Cypress
+frontend/cypress.env.json
+
 # Dependencias
 node_modules/
 

@@ -1,0 +1,7 @@
+{
+  "descripcion": "Test Cypress — Ingreso automatizado",
+  "monto": "9999",
+  "categoria": "Servicios",
+  "tipo": "Ingreso",
+  "proveedor": "Cliente Cypress"
+}

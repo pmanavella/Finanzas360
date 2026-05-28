@@ -216,14 +216,14 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
             </div>
             <div>
               <label className="form-label">Monto *</label>
-              <input type="number" value={form.monto} onChange={e => set('monto', e.target.value)}
+              <input data-testid="input-monto" type="number" value={form.monto} onChange={e => set('monto', e.target.value)}
                 placeholder="0.00" min="0" step="0.01" className={inputCls} style={inputStyle} />
             </div>
           </div>
 
           <div>
             <label className="form-label">Descripción *</label>
-            <input type="text" value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
+            <input data-testid="input-descripcion" type="text" value={form.descripcion} onChange={e => set('descripcion', e.target.value)}
               placeholder="Ej: Servidor AWS Marzo 2026" className={inputCls} style={inputStyle} />
           </div>
 

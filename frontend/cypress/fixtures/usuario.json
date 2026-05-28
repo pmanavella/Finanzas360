@@ -1,0 +1,6 @@
+{
+  "nombre": "Cypress Usuario Test",
+  "email": "cypress.test@finanzas360.com",
+  "password": "cypress123",
+  "rol": "usuario"
+}
