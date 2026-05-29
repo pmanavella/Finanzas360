@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, Search, Filter, Trash2, RefreshCw, ChevronDown } from 'lucide-react'
 import { api } from '../lib/api'
-import { canWrite } from '../lib/permissions'
+import { canWrite, canDelete } from '../lib/permissions'
 import FormMovimiento from './FormMovimiento'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 const CATEGORIAS = ['Todos', 'Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
 
@@ -123,6 +124,7 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
   const isIngreso = tipo === 'Ingreso'
   const accentColor = isIngreso ? '#2e8b57' : '#ef4444'
   const puedeEscribir = canWrite()
+  const puedeEliminar = canDelete()
 
   return (
     <div className="animate-fadeIn space-y-5">
@@ -256,13 +258,15 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
                           >
                             Editar
                           </button>
-                          <button
-                            onClick={() => setConfirmDelete(m)}
-                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {puedeEliminar && (
+                            <button
+                              onClick={() => setConfirmDelete(m)}
+                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -305,27 +309,18 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
 
       {/* Confirm delete */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-card-lg p-6 max-w-sm w-full animate-fadeIn border border-muted">
-            <h3 className="font-bold text-ink mb-2">¿Eliminar registro?</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Se eliminará <span className="font-semibold text-ink">"{confirmDelete.descripcion}"</span> y sus comprobantes asociados.
-              Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-2.5">
-              <button onClick={() => setConfirmDelete(null)} className="btn-secondary flex-1 justify-center">
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleDelete(confirmDelete.id)}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
-              >
-                <Trash2 size={14} /> Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title="¿Eliminar registro?"
+          message={
+            <>
+              Se eliminará{' '}
+              <span className="font-semibold text-gray-900">"{confirmDelete.descripcion}"</span>
+              {' '}y sus comprobantes asociados. Esta acción no se puede deshacer.
+            </>
+          }
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )

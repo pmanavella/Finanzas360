@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { api } from '../lib/api'
 import { obtenerCotizacionDetalle } from '../lib/dolarService'
-import { canWrite } from '../lib/permissions'
+import { canWrite, canDelete } from '../lib/permissions'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 import {
   Users, DollarSign, Tag, Plus, Trash2, X, ChevronDown,
 } from 'lucide-react'
@@ -181,14 +182,16 @@ const EMP_VACIO = {
 
 function TabEmpleados() {
   const puedeEscribir = canWrite()
-  const [empleados, setEmpleados]       = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [modal, setModal]               = useState(null)
-  const [form, setForm]                 = useState(EMP_VACIO)
-  const [saving, setSaving]             = useState(false)
-  const [error, setError]               = useState(null)
-  const [cotizacion, setCotizacion]     = useState(null)
-  const [loadingCot, setLoadingCot]     = useState(false)
+  const puedeEliminar = canDelete()
+  const [empleados, setEmpleados]         = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [modal, setModal]                 = useState(null)
+  const [form, setForm]                   = useState(EMP_VACIO)
+  const [saving, setSaving]               = useState(false)
+  const [error, setError]                 = useState(null)
+  const [cotizacion, setCotizacion]       = useState(null)
+  const [loadingCot, setLoadingCot]       = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -271,10 +274,10 @@ function TabEmpleados() {
     }
   }
 
-  const eliminar = async (id) => {
-    if (!confirm('¿Eliminar este empleado?')) return
+  const eliminar = async () => {
     try {
-      await api.eliminarEmpleado(id)
+      await api.eliminarEmpleado(confirmDelete)
+      setConfirmDelete(null)
       cargar()
     } catch (err) {
       alert(err.message)
@@ -341,12 +344,14 @@ function TabEmpleados() {
                         >
                           Editar
                         </button>
-                        <button
-                          onClick={() => eliminar(emp.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {puedeEliminar && (
+                          <button
+                            onClick={() => setConfirmDelete(emp.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -356,6 +361,15 @@ function TabEmpleados() {
           </table>
         </div>
       </div>
+
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          title="¿Eliminar empleado?"
+          message="Se eliminará este empleado y sus movimientos salariales asociados. Esta acción no se puede deshacer."
+          onConfirm={eliminar}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {modal && (
         <Modal title={modal === 'nuevo' ? 'Nuevo empleado' : 'Editar empleado'} onClose={() => setModal(null)}>
@@ -466,17 +480,19 @@ const MOV_VACIO = {
 
 function TabMovimientos() {
   const puedeEscribir = canWrite()
-  const [movs, setMovs]                     = useState([])
-  const [empleados, setEmpleados]           = useState([])
-  const [categorias, setCategorias]         = useState([])
-  const [loading, setLoading]               = useState(true)
-  const [modal, setModal]                   = useState(false)
-  const [form, setForm]                     = useState(MOV_VACIO)
-  const [empInfo, setEmpInfo]               = useState(null)
-  const [saving, setSaving]                 = useState(false)
-  const [error, setError]                   = useState(null)
-  const [movCotizacion, setMovCotizacion]   = useState(null)
-  const [movLoadingCot, setMovLoadingCot]   = useState(false)
+  const puedeEliminar = canDelete()
+  const [movs, setMovs]                       = useState([])
+  const [empleados, setEmpleados]             = useState([])
+  const [categorias, setCategorias]           = useState([])
+  const [loading, setLoading]                 = useState(true)
+  const [modal, setModal]                     = useState(false)
+  const [form, setForm]                       = useState(MOV_VACIO)
+  const [empInfo, setEmpInfo]                 = useState(null)
+  const [saving, setSaving]                   = useState(false)
+  const [error, setError]                     = useState(null)
+  const [movCotizacion, setMovCotizacion]     = useState(null)
+  const [movLoadingCot, setMovLoadingCot]     = useState(false)
+  const [confirmDelete, setConfirmDelete]     = useState(null)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -670,9 +686,8 @@ function TabMovimientos() {
     }
   }
 
-  const eliminar = async (id) => {
-    if (!confirm('¿Eliminar este movimiento?')) return
-    try { await api.eliminarMovimientoSalario(id); cargar() }
+  const eliminar = async () => {
+    try { await api.eliminarMovimientoSalario(confirmDelete); setConfirmDelete(null); cargar() }
     catch (err) { alert(err.message) }
   }
 
@@ -737,12 +752,14 @@ function TabMovimientos() {
                         >
                           Editar
                         </button>
-                        <button
-                          onClick={() => eliminar(m.id)}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        {puedeEliminar && (
+                          <button
+                            onClick={() => setConfirmDelete(m.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -752,6 +769,15 @@ function TabMovimientos() {
           </table>
         </div>
       </div>
+
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          title="¿Eliminar movimiento?"
+          message="Se eliminará este movimiento salarial. Esta acción no se puede deshacer."
+          onConfirm={eliminar}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {modal && (
         <Modal title={esEdicion ? 'Editar movimiento salarial' : 'Registrar movimiento salarial'} onClose={cerrarModal}>
@@ -919,12 +945,14 @@ function TabMovimientos() {
 
 function TabCategorias() {
   const puedeEscribir = canWrite()
-  const [cats, setCats]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modal, setModal]     = useState(false)
-  const [form, setForm]       = useState({ nombre: '', descripcion: '' })
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState(null)
+  const puedeEliminar = canDelete()
+  const [cats, setCats]                   = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [modal, setModal]                 = useState(false)
+  const [form, setForm]                   = useState({ nombre: '', descripcion: '' })
+  const [saving, setSaving]               = useState(false)
+  const [error, setError]                 = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -950,9 +978,8 @@ function TabCategorias() {
     }
   }
 
-  const eliminar = async (id) => {
-    if (!confirm('¿Eliminar esta categoría?')) return
-    try { await api.eliminarCategoriaSalario(id); cargar() }
+  const eliminar = async () => {
+    try { await api.eliminarCategoriaSalario(confirmDelete); setConfirmDelete(null); cargar() }
     catch (err) { alert(err.message) }
   }
 
@@ -990,10 +1017,10 @@ function TabCategorias() {
                 <td className="py-3 px-4 font-medium text-gray-900 whitespace-nowrap">{c.nombre}</td>
                 <td className="py-3 px-4 text-gray-500">{c.descripcion || '—'}</td>
                 <td className="py-3 px-4">
-                  {puedeEscribir && (
+                  {puedeEliminar && (
                     <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => eliminar(c.id)}
+                        onClick={() => setConfirmDelete(c.id)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <Trash2 size={13} />
@@ -1006,6 +1033,15 @@ function TabCategorias() {
           </tbody>
         </table>
       </div>
+
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          title="¿Eliminar categoría?"
+          message="Se eliminará esta categoría salarial. Esta acción no se puede deshacer."
+          onConfirm={eliminar}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {modal && (
         <Modal title="Nueva categoría salarial" onClose={() => setModal(false)}>

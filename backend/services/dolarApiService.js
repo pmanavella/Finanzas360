@@ -97,6 +97,7 @@ class DolarApiService {
 
   _format(row) {
     return {
+      id:           row.id,
       fecha:        row.fecha,
       fuente:       row.fuente,
       valor_compra: Number(row.valor_compra),

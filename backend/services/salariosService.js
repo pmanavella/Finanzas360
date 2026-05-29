@@ -123,6 +123,17 @@ class SalariosService {
     return { data, total: data.length };
   }
 
+  async _lookupCotizacionId(fecha, fuente) {
+    if (!fecha || !fuente) return null;
+    const { data } = await supabase
+      .from('cotizaciones_dolar')
+      .select('id')
+      .eq('fecha', fecha)
+      .eq('fuente', fuente)
+      .maybeSingle();
+    return data?.id || null;
+  }
+
   async crearMovimiento(body, createdBy) {
     const { empleado_id, categoria_id, monto, fecha, descripcion, cantidad } = body;
     if (!empleado_id || !categoria_id || !fecha)
@@ -140,6 +151,11 @@ class SalariosService {
     if (!montoFinal || montoFinal === 0)
       throw Object.assign(new Error('El monto no puede ser cero'), { status: 400 });
 
+    const cotizacion_id = await this._lookupCotizacionId(
+      body.cotizacion_fecha || null,
+      body.cotizacion_fuente || null
+    );
+
     const { data, error } = await supabase
       .from('movimientos_salario')
       .insert([{
@@ -151,6 +167,7 @@ class SalariosService {
         cotizacion_fecha:  body.cotizacion_fecha || null,
         cotizacion_fuente: body.cotizacion_fuente || null,
         monto_ars:         body.monto_ars        ? Number(body.monto_ars) : montoFinal,
+        cotizacion_id,
         created_by: createdBy || null,
       }])
       .select(`*, empleados (id, nombre, apellido), categorias_salariales (id, nombre)`)
@@ -176,6 +193,11 @@ class SalariosService {
     if (!montoFinal || montoFinal === 0)
       throw Object.assign(new Error('El monto no puede ser cero'), { status: 400 });
 
+    const cotizacion_id = await this._lookupCotizacionId(
+      body.cotizacion_fecha || null,
+      body.cotizacion_fuente || null
+    );
+
     const { data, error } = await supabase
       .from('movimientos_salario')
       .update({
@@ -187,6 +209,7 @@ class SalariosService {
         cotizacion_fecha:  body.cotizacion_fecha || null,
         cotizacion_fuente: body.cotizacion_fuente || null,
         monto_ars:         body.monto_ars        ? Number(body.monto_ars) : montoFinal,
+        cotizacion_id,
       })
       .eq('id', id)
       .select(`*, empleados (id, nombre, apellido), categorias_salariales (id, nombre)`)

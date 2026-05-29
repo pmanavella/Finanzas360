@@ -37,6 +37,7 @@ async function create(body, createdBy) {
   }
 
   let montoFinal = montoNum;
+  let cotizacionId = null;
   if (suscripcion_id && tipo === 'Gasto') {
     try {
       const susc = await suscripcionesService.obtenerPorId(suscripcion_id);
@@ -45,6 +46,7 @@ async function create(body, createdBy) {
         const rate = cotizacion.valor_unico ?? cotizacion.valor_venta ?? cotizacion.valor_compra;
         if (!rate) throw new Error('Cotización no disponible');
         montoFinal = Math.round(susc.monto * rate * 100) / 100;
+        cotizacionId = cotizacion.id || null;
         console.log(`[MOV] USD→ARS: ${susc.monto} × ${rate} = ${montoFinal}`);
       }
     } catch (e) {
@@ -62,6 +64,7 @@ async function create(body, createdBy) {
     fecha, descripcion: descripcion.trim(), categoria, tipo, monto: montoFinal,
     proveedor_cliente, notas,
     suscripcion_id: suscripcion_id || null,
+    cotizacion_id: cotizacionId,
     created_by: createdBy || null,
   });
   if (error) throw error;

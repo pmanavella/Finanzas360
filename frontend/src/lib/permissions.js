@@ -8,5 +8,6 @@ function getRole() {
 }
 
 export const canWrite        = () => ['admin', 'usuario'].includes(getRole())
+export const canDelete       = () => getRole() === 'admin'
 export const canAccessAdmin  = () => getRole() === 'admin'
 export const isLector        = () => getRole() === 'lector'

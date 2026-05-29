@@ -198,7 +198,7 @@ export default function Respaldo() {
       }
 
       const fecha = new Date().toISOString().split('T')[0]
-      XLSX.writeFile(wb, `reporte_finanzas360_${fecha}.xlsx`)
+      XLSX.writeFile(wb, `backup_finanzas360_${fecha}.xlsx`)
       setExpXls('ok')
       setTimeout(() => setExpXls('idle'), 4000)
     } catch (err) { setExpXls('error'); setExpXlsErr(err.message) }

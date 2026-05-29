@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Trash2, Eye, RefreshCw, FileText, Image, Plus, Save, X } from 'lucide-react'
 import { api } from '../lib/api'
-import { canWrite } from '../lib/permissions'
+import { canWrite, canDelete } from '../lib/permissions'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 const CATEGORIAS = ['Tecnología', 'RRHH', 'Insumos', 'Servicios', 'Inversión', 'Otros']
 
@@ -239,6 +240,7 @@ function DetallePanel({ comprobante, onRegistrar, onEliminar }) {
 
 export default function Comprobantes() {
   const puedeEscribir = canWrite()
+  const puedeEliminar = canDelete()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -401,7 +403,7 @@ export default function Comprobantes() {
                         {new Date(c.created_at).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-3 px-4">
-                        {puedeEscribir && (
+                        {puedeEliminar && (
                           <button
                             onClick={e => { e.stopPropagation(); setConfirmDelete(c) }}
                             className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -439,7 +441,7 @@ export default function Comprobantes() {
               <DetallePanel
                 comprobante={selected}
                 onRegistrar={() => setRegistrando(true)}
-                onEliminar={() => setConfirmDelete(selected)}
+                onEliminar={puedeEliminar ? () => setConfirmDelete(selected) : null}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12">
@@ -454,22 +456,18 @@ export default function Comprobantes() {
       </div>
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full animate-fadeIn">
-            <h3 className="font-semibold text-gray-900 mb-2">¿Eliminar comprobante?</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Se eliminará "<span className="font-medium">{confirmDelete.nombre_archivo}</span>". El movimiento vinculado no se elimina.
-            </p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmDelete(null)} className="btn-secondary flex-1 justify-center">Cancelar</button>
-              <button onClick={() => handleDelete(confirmDelete)}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
-                <Trash2 size={14} /> Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title="¿Eliminar comprobante?"
+          message={
+            <>
+              Se eliminará{' '}
+              <span className="font-semibold text-gray-900">"{confirmDelete.nombre_archivo}"</span>.
+              El movimiento vinculado no se elimina.
+            </>
+          }
+          onConfirm={() => handleDelete(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )

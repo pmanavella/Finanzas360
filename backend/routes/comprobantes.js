@@ -4,7 +4,8 @@ const comprobantesController = require('../controllers/comprobantesController');
 const uploadComprobantes = require('../middleware/uploadComprobantes');
 const { requireAuth, requireRole } = require('../middleware/rbacMiddleware');
 
-const canWrite = requireRole('admin', 'usuario');
+const canWrite  = requireRole('admin', 'usuario');
+const soloAdmin = requireRole('admin');
 
 router.get('/',              requireAuth, comprobantesController.getAll);
 router.post('/upload', canWrite, (req, res, next) => {
@@ -17,6 +18,6 @@ router.post('/upload', canWrite, (req, res, next) => {
   });
 }, comprobantesController.upload);
 router.put('/:id/vincular',  canWrite,    comprobantesController.vincular);
-router.delete('/:id',        canWrite,    comprobantesController.remove);
+router.delete('/:id',        soloAdmin,   comprobantesController.remove);
 
 module.exports = router;

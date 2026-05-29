@@ -12,6 +12,6 @@ router.get('/trazabilidad',  soloAdmin,   movimientosController.getTrazabilidad)
 router.get('/:id',           requireAuth, movimientosController.getById);
 router.post('/',             canWrite,    movimientosController.create);
 router.put('/:id',           canWrite,    movimientosController.update);
-router.delete('/:id',        canWrite,    movimientosController.remove);
+router.delete('/:id',        soloAdmin,   movimientosController.remove);
 
 module.exports = router;

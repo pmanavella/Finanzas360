@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, RefreshCw, Search, X, ChevronDown, Repeat2, Trash2 } from 'lucide-react'
 import { api } from '../lib/api'
-import { canWrite } from '../lib/permissions'
+import { canWrite, canDelete } from '../lib/permissions'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 const ESTADOS_FILTRO = ['Todas', 'Activa', 'Pausada', 'Cancelada']
 const FRECUENCIAS    = ['Mensual', 'Trimestral', 'Semestral', 'Anual']
@@ -174,6 +175,7 @@ export default function Suscripciones() {
   const [modal, setModal]         = useState(null)   // null | 'nuevo' | suscripcion
   const [confirmDel, setConfDel]  = useState(null)
   const puedeEscribir = canWrite()
+  const puedeEliminar = canDelete()
 
   const cargar = useCallback(async () => {
     setLoading(true); setError(null)
@@ -367,10 +369,12 @@ export default function Suscripciones() {
                               className="px-2.5 py-1 rounded-lg text-[12px] font-medium text-gray-400 hover:bg-blue-50 hover:text-blue-500 transition-colors">
                               Editar
                             </button>
-                            <button onClick={() => setConfDel(s)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors">
-                              <Trash2 size={13} />
-                            </button>
+                            {puedeEliminar && (
+                              <button onClick={() => setConfDel(s)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors">
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -394,23 +398,18 @@ export default function Suscripciones() {
 
       {/* Confirm eliminar */}
       {confirmDel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfDel(null)} />
-          <div className="relative bg-white rounded-2xl shadow-card-lg p-6 max-w-sm w-full fade-in border border-muted">
-            <h3 className="font-bold text-ink mb-2">¿Eliminar suscripción?</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Se eliminará <span className="font-semibold text-ink">"{confirmDel.nombre}"</span>.
+        <ConfirmDeleteModal
+          title="¿Eliminar suscripción?"
+          message={
+            <>
+              Se eliminará{' '}
+              <span className="font-semibold text-gray-900">"{confirmDel.nombre}"</span>.
               Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-2.5">
-              <button onClick={() => setConfDel(null)} className="btn-secondary flex-1 justify-center">Cancelar</button>
-              <button onClick={() => handleEliminar(confirmDel.id)}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
-                <Trash2 size={14} /> Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+          onConfirm={() => handleEliminar(confirmDel.id)}
+          onCancel={() => setConfDel(null)}
+        />
       )}
     </div>
   )

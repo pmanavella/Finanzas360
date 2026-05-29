@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Plus, Trash2, RefreshCw, AlertCircle, CheckCircle, Clock, X, Save } from 'lucide-react'
 import { api } from '../lib/api'
-import { canWrite } from '../lib/permissions'
+import { canWrite, canDelete } from '../lib/permissions'
+import ConfirmDeleteModal from './ConfirmDeleteModal'
 
 function fmt(n) {
   return new Intl.NumberFormat('es-AR', {
@@ -186,6 +187,7 @@ export default function Deudas() {
   }
 
   const puedeEscribir = canWrite()
+  const puedeEliminar = canDelete()
   const pendientes    = items.filter(d => d.estado !== 'Pagada')
   const vencidas      = items.filter(d => d.estado !== 'Pagada' && isVencida(d.vencimiento))
   const totalPendiente = pendientes.reduce((s, d) => s + Number(d.monto), 0)
@@ -301,7 +303,7 @@ export default function Deudas() {
                               Editar
                             </button>
                           )}
-                          {puedeEscribir && (
+                          {puedeEliminar && (
                             <button onClick={() => setConfirmDelete(d)}
                               className="p-1.5 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
                               <Trash2 size={13} />
@@ -344,30 +346,19 @@ export default function Deudas() {
         />
       )}
 
-      {confirmDelete && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full fade-in">
-            <h3 className="font-serif font-semibold text-gray-900 mb-2 text-[16px]">¿Eliminar deuda?</h3>
-            <p className="text-[13px] text-gray-500 mb-5">
+      {confirmDelete && (
+        <ConfirmDeleteModal
+          title="¿Eliminar deuda?"
+          message={
+            <>
               Se eliminará la deuda con{' '}
-              <span className="font-medium text-gray-700">"{confirmDelete.acreedor}"</span>.
+              <span className="font-semibold text-gray-900">"{confirmDelete.acreedor}"</span>.
               Esta acción no se puede deshacer.
-            </p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmDelete(null)}
-                className="flex-1 flex items-center justify-center px-4 py-2.5 rounded-xl border text-[13px] font-medium text-gray-600 bg-white hover:bg-gray-50 transition-colors"
-                style={{ borderColor: 'rgba(15,110,86,0.2)' }}>
-                Cancelar
-              </button>
-              <button onClick={() => handleDelete(confirmDelete.id)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-white text-[13px] font-medium bg-red-500 hover:bg-red-600 transition-colors">
-                <Trash2 size={14} /> Eliminar
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+            </>
+          }
+          onConfirm={() => handleDelete(confirmDelete.id)}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )
