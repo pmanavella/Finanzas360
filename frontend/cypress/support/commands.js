@@ -24,8 +24,15 @@ Cypress.Commands.add('login', (email, password) => {
     body: { email: userEmail, password: userPassword },
     failOnStatusCode: true,
   }).then(({ body }) => {
-    localStorage.setItem('token', body.token)
-    localStorage.setItem('user', JSON.stringify(body.user))
+    // localStorage.setItem() aquí afectaría el frame del Cypress runner,
+    // NO el localStorage de localhost:5173 donde corre la app.
+    // cy.visit() establece localhost:5173 como origen del AUT, y
+    // cy.window() da acceso al window real de la app para setear el token.
+    cy.visit('/login')
+    cy.window().then((win) => {
+      win.localStorage.setItem('token', body.token)
+      win.localStorage.setItem('user', JSON.stringify(body.user))
+    })
   })
 })
 
@@ -79,5 +86,6 @@ Cypress.Commands.add('navegarA', (paginaId) => {
   // Abrir el dropdown del grupo con mouseenter
   cy.get('nav').contains('button', grupo).parent().trigger('mouseenter')
   // Hacer clic en el ítem del dropdown
-  cy.get('nav').contains('button', label).click()
+  // cy.get('nav').contains('button', label).click()
+  cy.contains('button', label, { timeout: 10000 }).click()
 })

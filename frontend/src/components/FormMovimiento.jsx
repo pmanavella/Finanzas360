@@ -178,7 +178,7 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card fade-in" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+      <div data-testid="form-movimiento" className="modal-card fade-in" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
         <div className="modal-accent" />
 
         <div className="modal-header">
@@ -397,7 +397,9 @@ export default function FormMovimiento({ tipo, movimiento, onClose, onSaved }) {
         </div>
 
         <div className="modal-footer">
-          <button onClick={onClose}
+          <button
+            data-testid="btn-cancelar-movimiento"
+            onClick={onClose}
             className="flex-1 py-2.5 rounded-xl border text-[13px] font-medium text-gray-600 hover:bg-gray-50 transition-colors"
             style={{ borderColor: 'rgba(15,110,86,0.2)' }}>
             Cancelar

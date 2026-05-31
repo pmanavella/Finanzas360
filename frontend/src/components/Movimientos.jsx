@@ -139,7 +139,11 @@ export default function Movimientos({ tipo, openForm, onFormClose }) {
           </p>
         </div>
         {puedeEscribir && (
-          <button onClick={() => { setEditItem(null); setShowForm(true) }} className="btn-primary">
+          <button
+            data-testid={`btn-nuevo-${tipo.toLowerCase()}`}
+            onClick={() => { setEditItem(null); setShowForm(true) }}
+            className="btn-primary"
+          >
             <Plus size={15} /> Nuevo {tipo}
           </button>
         )}
