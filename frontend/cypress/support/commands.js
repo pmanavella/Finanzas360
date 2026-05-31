@@ -47,6 +47,7 @@ Cypress.Commands.add('login', (email, password) => {
  *   'ingresos', 'gastos', 'todos', 'deudas', 'salarios',
  *   'suscripciones', 'comprobantes', 'excel', 'usuarios', 'respaldo'
  */
+
 Cypress.Commands.add('navegarA', (paginaId) => {
   const grupos = {
     ingresos:      'Movimientos',
@@ -84,8 +85,16 @@ Cypress.Commands.add('navegarA', (paginaId) => {
   }
 
   // Abrir el dropdown del grupo con mouseenter
-  cy.get('nav').contains('button', grupo).parent().trigger('mouseenter')
+  // cy.get('nav').contains('button', grupo).parent().trigger('mouseenter')
   // Hacer clic en el ítem del dropdown
   // cy.get('nav').contains('button', label).click()
-  cy.contains('button', label, { timeout: 10000 }).click()
+  // cy.contains('button', label, { timeout: 10000 }).click()
+  cy.get('nav')
+    .contains('button', grupo)
+    .trigger('mouseover', { force: true })
+    .trigger('mouseenter', { force: true })
+
+  cy.contains(label, { timeout: 10000 })
+    .should('be.visible')
+    .click({ force: true })
 })

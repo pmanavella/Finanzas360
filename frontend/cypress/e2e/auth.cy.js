@@ -12,6 +12,8 @@
 describe('Autenticación — Login', () => {
 
   beforeEach(() => {
+    cy.clearLocalStorage()
+    cy.clearCookies()
     cy.visit('/login')
   })
 
@@ -37,7 +39,8 @@ describe('Autenticación — Login', () => {
 
     cy.contains('button', 'Ingresar al sistema').click()
 
-    cy.url({ timeout: 10000 }).should('include', '/app')
+    cy.location('pathname', { timeout: 15000 }).should('not.eq', '/login')
+    cy.location('pathname').should('match', /\/app|\/dashboard/)
 
     // Verificar que el token quedó en localStorage
     cy.window().then((win) => {

@@ -13,16 +13,35 @@
 // ============================================================
 
 describe('Trazabilidad', () => {
-
-  // TODO: Activar e implementar cuando exista el ambiente QA
-  it.skip('placeholder — pendiente de implementación en QA', () => {
-    // cy.login()
-    // cy.visit('/app')
-    // cy.navegarA('ingresos')
-    // // Abrir modal de trazabilidad de un movimiento
-    // cy.get('[data-testid="btn-trazabilidad"]').first().click()
-    // cy.contains('created_by').should('be.visible')
-    // cy.contains('created_at').should('be.visible')
+  beforeEach(() => {
+    cy.login()
+    cy.visit('/app')
+    cy.navegarA('todos')
+    cy.contains('h1', 'Todos los movimientos').should('be.visible')
   })
 
+  it('abre el modal de trazabilidad de movimientos', () => {
+    cy.contains('button', 'Trazabilidad').should('be.visible').click()
+  
+    cy.contains('Trazabilidad de movimientos', { timeout: 10000 }).should('be.visible')
+    cy.contains('registros', { timeout: 10000 }).should('be.visible')
+  
+    cy.contains('Gasto Cypress Test', { timeout: 10000 }).should('be.visible')
+    cy.contains(Cypress.env('adminEmail')).should('be.visible')
+  })
+
+  it('muestra información de auditoría de movimientos existentes', () => {
+    cy.contains('button', 'Trazabilidad').click()
+
+    cy.contains(Cypress.env('adminEmail')).should('be.visible')
+    cy.contains('@').should('be.visible')
+  })
+
+  it('permite cerrar el modal de trazabilidad', () => {
+    cy.contains('button', 'Trazabilidad').click()
+    cy.contains('Trazabilidad de movimientos').should('be.visible')
+
+    cy.contains('button', 'Cerrar').click()
+    cy.contains('Trazabilidad de movimientos').should('not.exist')
+  })
 })

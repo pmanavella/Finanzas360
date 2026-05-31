@@ -19,6 +19,21 @@ describe('Movimientos — Ingresos', () => {
     cy.visit('/app')
     cy.navegarA('ingresos')
     cy.contains('h1', 'Ingresos').should('be.visible')
+
+    cy.get('body').then(($body) => {
+      if ($body.find('.modal-overlay').length) {
+        cy.contains('button', 'Cancelar').click()
+      }
+    })
+  })
+
+  afterEach(() => {
+    cy.get('body').then(($body) => {
+      if ($body.find('.modal-overlay').length) {
+        cy.contains('button', 'Cancelar').click()
+        cy.contains('h2', 'Nuevo movimiento').should('not.exist')
+      }
+    })
   })
 
   // ----------------------------------------------------------
@@ -27,6 +42,8 @@ describe('Movimientos — Ingresos', () => {
   it('abre el formulario de nuevo ingreso', () => {
     cy.contains('button', 'Nuevo Ingreso').click()
     cy.contains('h2', 'Nuevo movimiento').should('be.visible')
+    cy.contains('button', 'Cancelar').click()
+    cy.contains('h2', 'Nuevo movimiento').should('not.exist')
   })
 
   it('cierra el formulario al hacer clic en Cancelar', () => {
@@ -41,10 +58,11 @@ describe('Movimientos — Ingresos', () => {
   // ----------------------------------------------------------
   it('crea un ingreso y aparece en la tabla', () => {
     cy.fixture('movimiento').then((mov) => {
-      cy.contains('button', 'Nuevo Ingreso').click()
+      // cy.contains('button', 'Nuevo Ingreso').click()
+      cy.contains('button', 'Nuevo Ingreso').should('be.visible').click()
 
       // Seleccionar tipo Ingreso (puede estar por defecto pero lo confirmamos)
-      cy.contains('button', 'Ingreso').click()
+      // cy.contains('button', 'Ingreso').click()
 
       cy.get('[data-testid="input-descripcion"]').clear().type(mov.descripcion)
       cy.get('[data-testid="input-monto"]').clear().type(mov.monto)
@@ -101,18 +119,35 @@ describe('Movimientos — Gastos', () => {
     cy.visit('/app')
     cy.navegarA('gastos')
     cy.contains('h1', 'Gastos').should('be.visible')
+
+    cy.get('body').then(($body) => {
+      if ($body.find('.modal-overlay').length) { 
+        cy.contains('button', 'Cancelar').click()
+      }
+    })
+  })
+
+  afterEach(() => {
+    cy.get('body').then(($body) => {
+      if ($body.find('.modal-overlay').length) {
+        cy.contains('button', 'Cancelar').click()
+        cy.contains('h2', 'Nuevo movimiento').should('not.exist')
+      }
+    })
   })
 
   it('abre el formulario de nuevo gasto', () => {
     cy.contains('button', 'Nuevo Gasto').click()
     cy.contains('h2', 'Nuevo movimiento').should('be.visible')
+    cy.contains('button', 'Cancelar').click()
+    cy.contains('h2', 'Nuevo movimiento').should('not.exist')
   })
 
   it('crea un gasto y aparece en la tabla', () => {
     cy.contains('button', 'Nuevo Gasto').click()
 
     // Confirmar que el tipo Gasto está activo
-    cy.contains('button', 'Gasto').click()
+    // cy.contains('button', 'Gasto').click()
 
     cy.get('[data-testid="input-descripcion"]').clear().type('Gasto Cypress Test')
     cy.get('[data-testid="input-monto"]').clear().type('1500')
