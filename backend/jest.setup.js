@@ -1,0 +1,4 @@
+process.env.SUPABASE_URL = 'https://endrittnpeehazukrvmu.supabase.co'
+process.env.SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVuZHJpdHRucGVlaGF6dWtydm11Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDA4MDIxMiwiZXhwIjoyMDk1NjU2MjEyfQ.YYCVXY1yJsNludRQQW3ufgvXQMoufNs7Y3bGzfEtVl0'
+process.env.JWT_SECRET = 'supersecretkey'
+process.env.PORT = '3002'

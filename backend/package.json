@@ -5,17 +5,17 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "start:qa": "DOTENV_CONFIG_PATH=.env.qa node -r dotenv/config index.js",
+    "start:qa": "cross-env DOTENV_CONFIG_PATH=.env.qa node -r dotenv/config index.js",
     "dev": "nodemon index.js",
-    "dev:qa": "DOTENV_CONFIG_PATH=.env.qa nodemon -r dotenv/config index.js",
+    "dev:qa": "cross-env DOTENV_CONFIG_PATH=.env.qa nodemon -r dotenv/config index.js",
     "seed": "node scripts/seed-admin.js",
-    "test": "echo \"Jest se configura en Fase 4\" && exit 0"
+    "test": "jest",
+    "test:qa": "cross-env NODE_ENV=test jest --runInBand"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^1.4.5-lts.1",
@@ -24,6 +24,15 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.4.2",
+    "jest": "^30.4.2",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 15000,
+    "setupFiles": ["./jest.setup.js"]
   }
 }
