@@ -112,13 +112,25 @@ export default function Dashboard({ onNavigate }) {
   const cargar = async () => {
     setLoading(true); setError(null)
     try {
-      const [m, mov, comp, prox] = await Promise.all([
+      const [m, mov, comp, prox, salRes] = await Promise.all([
         api.getMetricas(), api.getMovimientos(), api.getComprobantes(),
         api.getProximasAVencer().catch(() => ({ data: [] })),
+        api.getMovimientosSalario().catch(() => ({ data: [] })),
       ])
+      const salNorm = (salRes.data || []).map(s => ({
+        id:          s.id,
+        fecha:       s.fecha,
+        descripcion: s.empleados
+          ? `${s.empleados.nombre} ${s.empleados.apellido}${s.categorias_salariales?.nombre ? ` — ${s.categorias_salariales.nombre}` : ''}`
+          : s.descripcion || 'Salario',
+        tipo:        'Salario',
+        monto:       Number(s.monto),
+        categoria:   'Salarios',
+      }))
+      const merged = [...(mov.data || []), ...salNorm].sort((a, b) => b.fecha.localeCompare(a.fecha))
       setMetricas(m)
-      setAllMovs(mov.data)
-      setMovs(mov.data.slice(0, 7))
+      setAllMovs(merged)
+      setMovs(merged.slice(0, 7))
       setComps(comp.data.slice(0, 6))
       setAlertas(prox.data || [])
     } catch (e) { setError(e.message) }
@@ -152,7 +164,7 @@ export default function Dashboard({ onNavigate }) {
     ? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
     : `${now.getFullYear()}-01-01`
   const pieData = allMovs
-    .filter(m => m.tipo === 'Gasto' && m.fecha >= periodoStart)
+    .filter(m => (m.tipo === 'Gasto' || m.tipo === 'Salario') && m.fecha >= periodoStart)
     .reduce((acc, m) => {
       const found = acc.find(e => e.name === m.categoria)
       if (found) found.value += Number(m.monto)

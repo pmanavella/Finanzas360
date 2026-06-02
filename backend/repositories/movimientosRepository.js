@@ -50,6 +50,10 @@ async function getGastosByCategoriaInRange(startDate, endDate) {
   return supabase.from('movimientos').select('categoria, monto').eq('tipo', 'Gasto').gte('fecha', startDate).lte('fecha', endDate);
 }
 
+async function getSalariosByDateRange(startDate, endDate) {
+  return supabase.from('movimientos_salario').select('monto').gte('fecha', startDate).lte('fecha', endDate);
+}
+
 module.exports = {
   findAll,
   findById,
@@ -59,5 +63,6 @@ module.exports = {
   remove,
   getByDateRange,
   getPendientesOCRCount,
-  getGastosByCategoriaInRange
+  getGastosByCategoriaInRange,
+  getSalariosByDateRange,
 };

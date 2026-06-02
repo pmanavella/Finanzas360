@@ -137,12 +137,16 @@ async function getMetricas({ mes, anio } = {}) {
     { data: mesActual },
     { data: mesAnterior },
     { count: pendientesOCR },
-    { data: porCategoria }
+    { data: porCategoria },
+    { data: salActual },
+    { data: salAnterior },
   ] = await Promise.all([
     movimientosRepository.getByDateRange(firstDay, lastDayStr),
     movimientosRepository.getByDateRange(prevFirst, prevLastStr),
     movimientosRepository.getPendientesOCRCount(),
-    movimientosRepository.getGastosByCategoriaInRange(firstDay, lastDayStr)
+    movimientosRepository.getGastosByCategoriaInRange(firstDay, lastDayStr),
+    movimientosRepository.getSalariosByDateRange(firstDay, lastDayStr),
+    movimientosRepository.getSalariosByDateRange(prevFirst, prevLastStr),
   ]);
 
   const calcTotales = (arr) => {
@@ -156,6 +160,9 @@ async function getMetricas({ mes, anio } = {}) {
 
   const actual = calcTotales(mesActual);
   const anterior = calcTotales(mesAnterior);
+
+  actual.gastos   += (salActual   || []).reduce((s, m) => s + Number(m.monto), 0);
+  anterior.gastos += (salAnterior || []).reduce((s, m) => s + Number(m.monto), 0);
 
   const categoriaMap = {};
   if (porCategoria) {
