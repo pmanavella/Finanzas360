@@ -15,10 +15,9 @@ const CAT_COLORS = {
 const FALLBACK_COLORS = ['#86efac','#fde68a','#93c5fd','#c4b5fd','#fed7aa','#a5f3fc']
 
 const CARDS = [
-  { key:'ingresos',     title:'Ingresos del mes', icon:TrendingUp,  iconBg:'#dcfce7', iconColor:'#16a34a', wave:'#22c55e', trendKey:'pctIngreso', subtitle:'vs mes anterior', trend:true  },
-  { key:'gastos',       title:'Gastos del mes',   icon:TrendingDown,iconBg:'#fee2e2', iconColor:'#ef4444', wave:'#ef4444', trendKey:'pctGasto',   subtitle:'vs mes anterior', trend:true  },
-  { key:'balance',      title:'Balance neto',     icon:DollarSign,  iconBg:'#fef9c3', iconColor:'#ca8a04', wave:'#eab308', subtitle:'Actualizado hoy',              trend:false },
-  { key:'comprobantes', title:'Comprobantes',     icon:FileText,    iconBg:'#e0f2fe', iconColor:'#0284c7', wave:'#0ea5e9', subtitle:null,                           trend:false },
+  { key:'ingresos', title:'Ingresos del mes', icon:TrendingUp,  iconBg:'#dcfce7', iconColor:'#16a34a', wave:'#22c55e', trendKey:'pctIngreso', subtitle:'vs mes anterior', trend:true  },
+  { key:'gastos',   title:'Gastos del mes',   icon:TrendingDown,iconBg:'#fee2e2', iconColor:'#ef4444', wave:'#ef4444', trendKey:'pctGasto',   subtitle:'vs mes anterior', trend:true  },
+  { key:'balance',  title:'Balance neto',     icon:DollarSign,  iconBg:'#fef9c3', iconColor:'#ca8a04', wave:'#eab308', subtitle:'Actualizado hoy',              trend:false },
 ]
 
 function fmt(n) {
@@ -172,7 +171,7 @@ export default function Dashboard({ onNavigate }) {
       return acc
     }, [])
   const movFiltrados = filtro === 'Todos' ? movs : movs.filter(m => m.tipo === (filtro === 'Ingresos' ? 'Ingreso' : 'Gasto'))
-  const delays = ['delay-0','delay-75','delay-150','delay-225']
+  const delays = ['delay-0','delay-75','delay-150']
 
   return (
     <div className="space-y-6">
@@ -204,7 +203,7 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ── Métricas ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {CARDS.map((cfg, i) => (
           <MetricCard key={cfg.key} cfg={cfg}
             value={cfg.key === 'comprobantes' ? comps.length : metricas?.[cfg.key]}
